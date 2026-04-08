@@ -1,0 +1,23 @@
+# Logs
+love.log
+stderr.log
+stdout.log
+studio.log
+*.log
+
+# Crashes
+crashes/
+
+# Editor/System Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build/Modules
+node_modules/
+build/
+dist/
+out/
+*.tmp
