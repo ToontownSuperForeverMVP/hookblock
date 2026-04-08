@@ -12,7 +12,7 @@ Luvöxel Studio is a lightweight, 3D game development environment and engine ins
   - **Transformation Tools**: Standard Move, Scale, and Rotate gizmos.
   - **Asset Browser**: Manage and import project assets.
 - **Built-in MCP Server**: Native support for the **Model Context Protocol**, allowing AI agents (like Gemini or Claude) to inspect the game tree, manipulate objects, and execute code within the engine.
-- **Roblox-like Luau Scripting**: A script runtime that supports Lua-based logic within the game hierarchy.
+- **Roblox-like Lua Scripting**: A script runtime that supports Lua-based logic within the game hierarchy.
 - **Cross-Platform**: Runs on Windows, macOS, and Linux via Love2D.
 
 ## Getting Started
@@ -78,7 +78,7 @@ The `qol` branch introduces several editor improvements to streamline the develo
 Luvöxel Studio hosts an MCP server on `localhost:7111`. This allows external tools to:
 - **Search the Game Tree**: Find instances by name or class.
 - **Inspect Instances**: Read properties, attributes, and children.
-- **Execute Luau**: Run arbitrary code in the engine's environment.
+- **Execute Lua**: Run arbitrary code in the engine's environment.
 - **Transform Objects**: Move or rotate parts via external commands.
 
 ## License
