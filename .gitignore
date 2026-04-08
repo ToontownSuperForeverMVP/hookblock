@@ -24,3 +24,7 @@ build/
 dist/
 out/
 *.tmp
+
+# Luacheck
+luacheck.exe
+.luacheckrc

@@ -118,8 +118,6 @@ function love.load()
                 local SpawnLocation = require("engine.spawnlocation")
                 local Vector3 = require("engine.vector3")
                 local Color3 = require("engine.color3")
-                local Script = require("engine.script")
-                local Folder = require("engine.folder")
 
                 if not isNew then
                     -- Load from file
@@ -429,7 +427,6 @@ function love.filedropped(file)
 
     local Part = require("engine.part")
     local Script = require("engine.script")
-    local Vector3 = require("engine.vector3")
 
     if ext == "obj" then
         -- Load as a new Part with this mesh
@@ -440,7 +437,7 @@ function love.filedropped(file)
         p:setShape("Mesh")
         p:setParent(Engine.Workspace)
         _G._Notifications.new("Imported model: " .. path:match("([^/\\]+)$"), "info")
-    elseif ext == "png" or ext == "jpg" or ext == "jpeg" then
+    elseif ext == "png" or ext == "jpg" or ext == ".jpeg" then
         -- Apply as texture to selected part
         local sel = _G._UI and _G._UI.selectedInstance
         if sel and sel.setTexture then

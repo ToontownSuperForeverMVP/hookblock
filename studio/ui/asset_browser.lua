@@ -2,7 +2,6 @@
 -- Asset Browser panel
 
 local Theme = require("studio.theme")
-local Instance = require("engine.instance")
 local Part = require("engine.part")
 local Script = require("engine.script")
 
