@@ -18,11 +18,11 @@ function Signal:Connect(callback)
     }
     
     function connection:Disconnect()
-        if not self.Connected then return end
-        self.Connected = false
-        for i, _conn in ipairs(self._signal._connections) do
-            if _conn == self then
-                table.remove(self._signal._connections, i)
+        if not connection.Connected then return end
+        connection.Connected = false
+        for i, _conn in ipairs(connection._signal._connections) do
+            if _conn == connection then
+                table.remove(connection._signal._connections, i)
                 break
             end
         end
