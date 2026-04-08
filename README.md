@@ -45,6 +45,26 @@ You must have **LÖVE 11.x** installed on your system.
      love .
      ```
 
+## Quality of Life (QOL) Improvements
+
+The `qol` branch introduces several editor improvements to streamline the development workflow:
+
+### Keyboard Shortcuts (Studio Mode)
+- **`Delete` / `Backspace`**: Delete selected instance.
+- **`Ctrl+D`**: Duplicate selected instance.
+- **`Ctrl+Z` / `Ctrl+Shift+Z`**: Undo / Redo.
+- **`Ctrl+Y`**: Redo.
+- **`Ctrl+S`**: Save scene to `save.json`.
+- **`Ctrl+G`**: Group selection into a Model.
+- **`F`**: Focus camera on selected instance.
+- **`F5` / `F6` / `F7`**: Play / Pause / Stop playtest.
+
+### Rendering & Precision
+- **Depth Buffer**: Enabled 24-bit depth buffer for correct 3D layering.
+- **Back-Face Culling**: Optimized rendering by culling non-visible internal faces.
+- **Improved Z-Precision**: Adjusted near-clip plane to reduce "Z-fighting" artifacts.
+- **Transparency Sorting**: Semi-transparent parts no longer "cut holes" into background geometry.
+
 ## Engine Structure
 
 - `/engine`: The core runtime, including `Instance`, `Vector3`, `Color3`, `Physics`, and `Workspace`.
