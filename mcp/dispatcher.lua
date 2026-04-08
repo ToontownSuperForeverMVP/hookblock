@@ -7,6 +7,7 @@ local Control    = require("mcp.tools.control")
 local PlayMode   = require("mcp.tools.playmode")
 local Eval       = require("mcp.tools.eval")
 local Scene      = require("mcp.tools.scene")
+local Edit       = require("mcp.tools.edit")
 
 local TOOL_LIST = {
     {
@@ -41,7 +42,6 @@ local TOOL_LIST = {
             required = {"path", "property", "value"}
         }
     },
-
     {
         name = "select_instance",
         description = "Set the studio selection.",
@@ -49,6 +49,96 @@ local TOOL_LIST = {
             type = "object",
             properties = { path = { type = "string" } },
             required = {"path"}
+        }
+    },
+    {
+        name = "get_children",
+        description = "Get immediate children of a specific instance.",
+        inputSchema = {
+            type = "object",
+            properties = { path = { type = "string" } }
+        }
+    },
+    {
+        name = "find_instances",
+        description = "Search for instances by className or name.",
+        inputSchema = {
+            type = "object",
+            properties = {
+                className = { type = "string" },
+                name = { type = "string" },
+                root = { type = "string" }
+            }
+        }
+    },
+    {
+        name = "create_instance",
+        description = "Create a new instance in the workspace.",
+        inputSchema = {
+            type = "object",
+            properties = {
+                className = { type = "string" },
+                name = { type = "string" },
+                parent = { type = "string" },
+                properties = { type = "object" }
+            },
+            required = {"className"}
+        }
+    },
+    {
+        name = "destroy_instance",
+        description = "Destroy an instance by path.",
+        inputSchema = {
+            type = "object",
+            properties = { path = { type = "string" } },
+            required = {"path"}
+        }
+    },
+    {
+        name = "reparent_instance",
+        description = "Change the parent of an instance.",
+        inputSchema = {
+            type = "object",
+            properties = {
+                path = { type = "string" },
+                newParent = { type = "string" }
+            },
+            required = {"path", "newParent"}
+        }
+    },
+    {
+        name = "read_script",
+        description = "Read the source code of a Script or ModuleScript.",
+        inputSchema = {
+            type = "object",
+            properties = { path = { type = "string" } },
+            required = {"path"}
+        }
+    },
+    {
+        name = "write_script",
+        description = "Write the source code of a Script or ModuleScript.",
+        inputSchema = {
+            type = "object",
+            properties = {
+                path = { type = "string" },
+                source = { type = "string" }
+            },
+            required = {"path", "source"}
+        }
+    },
+    {
+        name = "camera_move",
+        description = "Move or rotate the editor freecam.",
+        inputSchema = {
+            type = "object",
+            properties = {
+                x = { type = "number" },
+                y = { type = "number" },
+                z = { type = "number" },
+                pitch = { type = "number" },
+                yaw = { type = "number" }
+            }
         }
     },
     {
@@ -185,6 +275,24 @@ function Dispatcher.dispatch(name, args)
     elseif name == "select_instance" then
         return Inspect.selectInstance(args)
 
+    -- Edit / Workspace manipulation
+    elseif name == "get_children" then
+        return Edit.getChildren(args)
+    elseif name == "find_instances" then
+        return Edit.findInstances(args)
+    elseif name == "create_instance" then
+        return Edit.createInstance(args)
+    elseif name == "destroy_instance" then
+        return Edit.destroyInstance(args)
+    elseif name == "reparent_instance" then
+        return Edit.reparentInstance(args)
+    elseif name == "read_script" then
+        return Edit.readScript(args)
+    elseif name == "write_script" then
+        return Edit.writeScript(args)
+    elseif name == "camera_move" then
+        return Edit.cameraMove(args)
+
     -- Control
     elseif name == "control_key" then
         return Control.key(args)
@@ -229,5 +337,3 @@ function Dispatcher.poll(name)
 end
 
 return Dispatcher
-
-
