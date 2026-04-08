@@ -55,17 +55,29 @@ end
 -- ─── Path resolution ────────────────────────────────────────────────────────
 
 local function resolvePath(path)
-    -- path like "Workspace" or "Workspace.MyPart" or "MyPart"
-    if not Engine or not Engine.Workspace then return nil, "Engine not ready" end
+    if not Engine then return nil, "Engine not ready" end
+    local root = Engine.Game or Engine.Workspace
+    if not root then return nil, "Game/Workspace not ready" end
 
     local parts = {}
     for segment in path:gmatch("[^%./]+") do
         table.insert(parts, segment)
     end
+    
+    if #parts == 0 then return root, nil end
 
-    local node = Engine.Workspace
-    -- If first segment is "Workspace", skip it
-    local start = (parts[1] == "Workspace") and 2 or 1
+    local node = root
+    local start = 1
+    
+    if node.ClassName == "DataModel" then
+        if parts[1] == "game" or parts[1] == "Game" then
+            start = 2
+        end
+    else
+        if parts[1] == "Workspace" then
+            start = 2
+        end
+    end
 
     for i = start, #parts do
         local seg = parts[i]
@@ -78,6 +90,16 @@ local function resolvePath(path)
                     break
                 end
             end
+        end
+        -- Handle GetService dynamically for Game root
+        if not found and node.ClassName == "DataModel" and node.GetService then
+            pcall(function() 
+                local svc = node:GetService(seg)
+                if svc then
+                    node = svc
+                    found = true
+                end
+            end)
         end
         if not found then
             return nil, "Instance not found at segment: " .. seg
