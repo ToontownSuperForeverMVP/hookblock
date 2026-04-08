@@ -645,9 +645,95 @@ function UI.textinput(t)
 end
 
 function UI.keypressed(key)
-    if Explorer.searchFocused then Explorer.keypressed(key)
-    elseif Properties.isEditing() then Properties.keypressed(key)
-    elseif UI.activeTab == "Script" then ScriptEditor.keypressed(key) end
+    if Explorer.searchFocused then Explorer.keypressed(key) return true end
+    if Properties.isEditing() then Properties.keypressed(key) return true end
+    if UI.activeTab == "Script" then ScriptEditor.keypressed(key) return true end
+
+    local ctrl = love.keyboard.isDown("lctrl", "rctrl", "gui")
+    local shift = love.keyboard.isDown("lshift", "rshift")
+
+    if key == "delete" or key == "backspace" then
+        local inst = UI.selectedInstance
+        if inst and inst.Parent and inst.ClassName ~= "Workspace" and inst.ClassName ~= "DataModel" then
+            local parent = inst.Parent
+            if Engine.History then Engine.History:recordDelete(inst, parent) end
+            inst.Parent = nil
+            UI.selectedInstance = nil
+            print("[Luvoxel] Deleted " .. inst.Name)
+            return true
+        end
+    elseif key == "d" and ctrl then
+        local inst = UI.selectedInstance
+        if inst and inst.Clone and inst.ClassName ~= "Workspace" and inst.ClassName ~= "DataModel" then
+            local clone = inst:Clone()
+            if clone.Position then clone.Position.x = clone.Position.x + 2 end
+            clone.Parent = inst.Parent or Engine.Workspace
+            if Engine.History then Engine.History:recordCreate(clone, clone.Parent) end
+            UI.selectedInstance = clone
+            print("[Luvoxel] Duplicated " .. inst.Name)
+            return true
+        end
+    elseif key == "z" and ctrl then
+        if shift then
+            if Engine.History then Engine.History:redo() end
+        else
+            if Engine.History then Engine.History:undo() end
+        end
+        return true
+    elseif key == "y" and ctrl then
+        if Engine.History then Engine.History:redo() end
+        return true
+    elseif key == "s" and ctrl then
+        local Serializer = require("engine.serializer")
+        Serializer.saveToFile(Engine.Workspace, "save.json")
+        if _G._Notifications then _G._Notifications.show("Scene saved to save.json", "info") end
+        return true
+    elseif key == "g" and ctrl then
+        local sel = UI.selectedInstance
+        if sel and sel.ClassName ~= "Workspace" and sel.ClassName ~= "DataModel" then
+            local Model = require("engine.model")
+            local m = Model.new("Model")
+            local parent = sel.Parent or Engine.Workspace
+            m:setParent(parent)
+            sel:setParent(m)
+            m.PrimaryPart = (sel.Position) and sel or nil
+            UI.selectedInstance = m
+            if Engine.History then Engine.History:recordCreate(m, parent) end
+            print("[Luvoxel] Grouped " .. sel.Name .. " into Model")
+            return true
+        end
+    elseif key == "f" and UI.activeTab == "Viewport" then
+        local inst = UI.selectedInstance
+        if inst and inst.Position and Engine.Camera then
+            local pos = inst.Position
+            local dirX, dirY, dirZ = Engine.Camera.getLookVector()
+            local dist = 10
+            if inst.Size then
+                dist = math.max(math.abs(inst.Size.x), math.abs(inst.Size.y), math.abs(inst.Size.z)) * 2
+            end
+            Engine.Camera.lookAt(
+                pos.x - dirX * dist, 
+                pos.y - dirY * dist, 
+                pos.z - dirZ * dist, 
+                pos.x, pos.y, pos.z
+            )
+            print("[Luvoxel] Camera focused on " .. inst.Name)
+        end
+        return true
+    elseif key == "f5" then
+        if Engine.PlayMode and Engine.PlayMode.state == "Stopped" then
+            Engine.PlayMode:play(Engine.Workspace)
+        end
+        return true
+    elseif key == "f6" then
+        if Engine.PlayMode then Engine.PlayMode:pause() end
+        return true
+    elseif key == "f7" then
+        if Engine.PlayMode then Engine.PlayMode:stop(Engine.Workspace) end
+        return true
+    end
+
+    return false
 end
 
 function UI.isOverUI(x, y)
