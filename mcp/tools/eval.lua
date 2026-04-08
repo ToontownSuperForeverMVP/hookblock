@@ -8,7 +8,7 @@ local SANDBOX_WHITELIST = {
     "pairs", "ipairs", "next", "select", "type", "tostring", "tonumber",
     "unpack", "table", "string", "math", "os", "io", "pcall", "xpcall",
     "error", "assert", "rawget", "rawset", "rawequal", "setmetatable",
-    "getmetatable", "require"
+    "getmetatable", "require", "game", "workspace"
 }
 
 local function buildSandbox()
