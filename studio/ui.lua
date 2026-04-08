@@ -649,7 +649,7 @@ function UI.keypressed(key)
     if Properties.isEditing() then Properties.keypressed(key) return true end
     if UI.activeTab == "Script" then ScriptEditor.keypressed(key) return true end
 
-    local ctrl = love.keyboard.isDown("lctrl", "rctrl", "gui")
+    local ctrl = love.keyboard.isDown("lctrl", "rctrl", "lgui", "rgui")
     local shift = love.keyboard.isDown("lshift", "rshift")
 
     if key == "delete" or key == "backspace" then

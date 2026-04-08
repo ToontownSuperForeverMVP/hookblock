@@ -337,7 +337,7 @@ function love.keypressed(key, scancode, isrepeat)
     end
 
     -- Global shortcuts
-    if love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
+    if love.keyboard.isDown("lctrl", "rctrl", "lgui", "rgui") then
         if key == "z" and Engine.History then
             Engine.History:undo()
             return

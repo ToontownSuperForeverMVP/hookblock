@@ -136,7 +136,8 @@ function Sky:draw()
     })
 
     lg.push("all")
-    lg.setDepthMode()
+    lg.setDepthMode("always", false)
+    lg.setMeshCullMode("none")
     lg.setColor(1, 1, 1, 1)
     lg.draw(self.mesh)
     
