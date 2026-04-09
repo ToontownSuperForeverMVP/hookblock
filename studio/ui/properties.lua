@@ -11,6 +11,10 @@ Properties.scrollY = 0
 Properties.editField = nil  -- {inst, key, subkey, prop} currently editing
 local editText  = ""
 
+-- Drag-to-change numeric values
+Properties.dragField = nil -- {inst, key, startVal, startX}
+local dragSensitivity = 0.1
+
 function Properties.isEditing()
     return Properties.editField ~= nil
 end
@@ -34,46 +38,23 @@ local function getProps(inst)
     if inst:IsA("Lighting") then
         table.insert(props, {group = "Lighting", items = {
             {key = "Ambient", label = "Ambient", type = "color",
-                get = function(i) return string.format("%.0f, %.0f, %.0f", i.Ambient[1]*255, i.Ambient[2]*255, i.Ambient[3]*255) end,
-                set = function() end}, -- Handled by color picker
+                get = function(i) return string.format("%.0f, %.0f, %.0f", i.Ambient.r*255, i.Ambient.g*255, i.Ambient.b*255) end,
+                set = function() end},
             {key = "Brightness", label = "Brightness", type = "number",
                 get = function(i) return string.format("%.2f", i.Brightness) end,
                 set = function(i, v) i.Brightness = tonumber(v) or i.Brightness end},
             {key = "GlobalShadows", label = "Global Shadows", type = "bool",
                 get = function(i) return i.GlobalShadows end,
                 set = function(i, v) i.GlobalShadows = v end},
-            {key = "LightingShift", label = "LightingShift", type = "bool",
-                get = function(i) return i.LightingShift end,
-                set = function(i, v) i.LightingShift = v end},
-            {key = "CloudsEnabled", label = "Clouds Enabled", type = "bool",
-                get = function(i) return i.CloudsEnabled end,
-                set = function(i, v) i.CloudsEnabled = v end},
-            {key = "CloudColor", label = "Cloud Color", type = "color",
-                get = function(i) return string.format("%.0f, %.0f, %.0f", i.CloudColor[1]*255, i.CloudColor[2]*255, i.CloudColor[3]*255) end,
-                set = function() end},
-            {key = "CloudSpeed", label = "Cloud Speed", type = "number",
-                get = function(i) return string.format("%.2f", i.CloudSpeed) end,
-                set = function(i, v) i.CloudSpeed = tonumber(v) or i.CloudSpeed end},
-            {key = "CloudAltitude", label = "Cloud Altitude", type = "number",
-                get = function(i) return string.format("%.1f", i.CloudAltitude) end,
-                set = function(i, v) i.CloudAltitude = tonumber(v) or i.CloudAltitude end},
-            {key = "CloudDensity", label = "Cloud Density", type = "number",
-                get = function(i) return string.format("%.2f", i.CloudDensity) end,
-                set = function(i, v) i.CloudDensity = math.max(0, math.min(1, tonumber(v) or i.CloudDensity)) end},
             {key = "OutdoorAmbient", label = "Outdoor Ambient", type = "color",
-                get = function(i) return string.format("%.0f, %.0f, %.0f", i.OutdoorAmbient[1]*255, i.OutdoorAmbient[2]*255, i.OutdoorAmbient[3]*255) end,
+                get = function(i) return string.format("%.0f, %.0f, %.0f", i.OutdoorAmbient.r*255, i.OutdoorAmbient.g*255, i.OutdoorAmbient.b*255) end,
                 set = function() end},
             {key = "ShadowColor", label = "Shadow Color", type = "color",
                 get = function(i) return string.format("%.0f, %.0f, %.0f", i.ShadowColor.r*255, i.ShadowColor.g*255, i.ShadowColor.b*255) end,
                 set = function() end},
-            {key = "TimeScale", label = "Time Scale", type = "number",
-                get = function(i) return string.format("%.2f", i.TimeScale) end,
-                set = function(i, v) i.TimeScale = tonumber(v) or i.TimeScale end},
             {key = "ClockTime", label = "ClockTime", type = "number",
                 get = function(i) return string.format("%.2f", i.ClockTime) end,
                 set = function(i, v) i:SetClockTime(tonumber(v) or i.ClockTime) end},
-            {key = "TimeOfDay", label = "TimeOfDay", type = "string_ro",
-                get = function(i) return i.TimeOfDay end},
         }})
     end
 
@@ -123,9 +104,9 @@ local function getProps(inst)
         local appearance = {group = "Appearance", items = {
             {key = "Color", label = "Color", type = "color",
                 get = function(i)
-                    return string.format("%.0f, %.0f, %.0f", i.Color[1]*255, i.Color[2]*255, i.Color[3]*255)
+                    return string.format("%.0f, %.0f, %.0f", i.Color.r*255, i.Color.g*255, i.Color.b*255)
                 end,
-                set = function() end}, -- handled by color picker
+                set = function() end},
         }}
 
         if inst.Transparency ~= nil then
@@ -151,8 +132,8 @@ local function getProps(inst)
         table.insert(props, appearance)
     end
 
-    -- Value instances support
     if inst.Value ~= nil then
+        -- Value instances...
         local vtype = type(inst.Value)
         local ptype = "string"
         if vtype == "number" then ptype = "number"
@@ -178,7 +159,7 @@ local function getProps(inst)
             table.insert(valGroup.items, {key = "Value", label = "Value", type = ptype,
                 get = function(i)
                     if ptype == "color" then
-                        return string.format("%.0f, %.0f, %.0f", i.Value[1]*255, i.Value[2]*255, i.Value[3]*255)
+                        return string.format("%.0f, %.0f, %.0f", i.Value.r*255, i.Value.g*255, i.Value.b*255)
                     end
                     return tostring(i.Value)
                 end,
@@ -261,9 +242,10 @@ function Properties.draw(panelX, panelY, panelW, panelH)
 
             local isEditing = (Properties.editField and Properties.editField.inst == inst and Properties.editField.key == prop.key)
             local isHov     = Theme.inRect(mx, my, panelX, yOff, panelW, rh)
+            local isDragging = (Properties.dragField and Properties.dragField.inst == inst and Properties.dragField.key == prop.key)
 
             -- Row bg
-            if isEditing then
+            if isEditing or isDragging then
                 Theme.drawRect(panelX, yOff, panelW, rh, Theme.colors.bg_active)
             elseif isHov then
                 Theme.drawRect(panelX, yOff, panelW, rh, Theme.colors.bg_hover)
@@ -285,12 +267,8 @@ function Properties.draw(panelX, panelY, panelW, panelH)
                 local cbY = yOff + 3
                 local cbS = 14
 
-                -- Checkbox background
-                if boolVal then
-                    love.graphics.setColor(0.17, 0.42, 0.75, 1)
-                else
-                    love.graphics.setColor(0.25, 0.26, 0.28, 1)
-                end
+                if boolVal then love.graphics.setColor(0.17, 0.42, 0.75, 1)
+                else love.graphics.setColor(0.25, 0.26, 0.28, 1) end
                 love.graphics.rectangle("fill", cbX, cbY, cbS, cbS, 3)
                 love.graphics.setColor(0.4, 0.4, 0.4, 1)
                 love.graphics.rectangle("line", cbX, cbY, cbS, cbS, 3)
@@ -301,13 +279,11 @@ function Properties.draw(panelX, panelY, panelW, panelH)
                     love.graphics.print("✓", cbX + 2, cbY)
                 end
 
-                -- Label
                 love.graphics.setFont(Theme.fonts.normal)
                 Theme.setColor(Theme.colors.text_primary)
                 love.graphics.print(tostring(boolVal), cbX + cbS + 4, yOff + 3)
 
             elseif prop.type == "enum" then
-                -- Dropdown-like display
                 local valText = prop.get(inst)
                 love.graphics.setFont(Theme.fonts.normal)
                 Theme.setColor(Theme.colors.text_primary)
@@ -315,22 +291,19 @@ function Properties.draw(panelX, panelY, panelW, panelH)
 
             elseif prop.type == "color" then
                 -- Color swatch
-                local colorValue = inst[prop.key]
+                local colorValue = inst[prop.key:match("^[^.]+")]
                 if colorValue then
-                    local cr, cg, cb = colorValue.r, colorValue.g, colorValue.b
-                    love.graphics.setColor(cr, cg, cb, 1)
+                    love.graphics.setColor(colorValue.r, colorValue.g, colorValue.b, 1)
                     love.graphics.rectangle("fill", panelX + halfW + 6, yOff + 3, rh - 6, rh - 6, 3)
                     love.graphics.setColor(0.5, 0.5, 0.5, 1)
                     love.graphics.rectangle("line", panelX + halfW + 6, yOff + 3, rh - 6, rh - 6, 3)
                 end
 
-                -- RGB text
                 love.graphics.setFont(Theme.fonts.small)
                 Theme.setColor(Theme.colors.text_primary)
                 love.graphics.print(prop.get(inst), panelX + halfW + 6 + rh, yOff + 5)
 
             elseif isEditing then
-                -- Edit box
                 Theme.setColor(Theme.colors.bg_dark)
                 love.graphics.rectangle("fill", panelX + halfW + 2, yOff + 2, halfW - 4, rh - 4)
                 Theme.setColor(Theme.colors.border_focus)
@@ -341,6 +314,12 @@ function Properties.draw(panelX, panelY, panelW, panelH)
             else
                 local valText = prop.get(inst)
                 local valColor = (prop.type == "string_ro") and Theme.colors.text_disabled or Theme.colors.text_primary
+                
+                -- Highlight numeric value on hover for drag hint
+                if isHov and prop.type == "number" then
+                    Theme.drawRect(panelX + halfW + 4, yOff + 2, panelW - halfW - 8, rh - 4, {1, 1, 1, 0.1}, 2)
+                end
+
                 Theme.setColor(valColor)
                 love.graphics.setFont(Theme.fonts.normal)
                 love.graphics.print(valText, panelX + halfW + 6, yOff + 3)
@@ -352,25 +331,18 @@ function Properties.draw(panelX, panelY, panelW, panelH)
             })
 
             yOff = yOff + rh
-
-            -- Row separator
             Theme.drawDivider(panelX, yOff, panelW, 1, false)
         end
     end
 
     love.graphics.setScissor()
-
-    -- Divider
     Theme.drawDivider(panelX + panelW - 1, panelY, 1, panelH, true)
 end
 
 function Properties.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
     if not Theme.inRect(x, y, panelX, panelY, panelW, panelH) then
-        -- Clicked outside: commit edit
         if Properties.editField then
-            if Properties.editField.prop.set then
-                Properties.editField.prop.set(Properties.editField.inst, editText)
-            end
+            if Properties.editField.prop.set then Properties.editField.prop.set(Properties.editField.inst, editText) end
             Properties.editField = nil
         end
         return false
@@ -379,64 +351,81 @@ function Properties.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
     if button == 1 then
         for _, rect in ipairs(rowRects) do
             if Theme.inRect(x, y, rect.x, rect.y, rect.w, rect.h) then
-                -- Handle bool toggle
                 if rect.prop.type == "bool" then
                     local current = rect.prop.get(rect.inst)
                     rect.prop.set(rect.inst, not current)
                     return true
-                end
-
-                -- Handle color → open color picker
-                if rect.prop.type == "color" then
+                elseif rect.prop.type == "color" then
                     ColorPicker.open(rect.inst, x, y, rect.key)
                     return true
-                end
-
-                -- Handle enum → cycle through options
-                if rect.prop.type == "enum" and rect.prop.options then
+                elseif rect.prop.type == "enum" and rect.prop.options then
                     local current = rect.prop.get(rect.inst)
                     local opts = rect.prop.options
                     local idx = 1
-                    for i, opt in ipairs(opts) do
-                        if opt == current then idx = i break end
-                    end
+                    for i, opt in ipairs(opts) do if opt == current then idx = i break end end
                     idx = (idx % #opts) + 1
                     rect.prop.set(rect.inst, opts[idx])
                     return true
-                end
-
-                -- Normal editable field
-                if rect.prop.type ~= "string_ro" then
+                elseif rect.prop.type == "number" then
+                    -- Start dragging
+                    Properties.dragField = {
+                        inst = rect.inst,
+                        key = rect.key,
+                        prop = rect.prop,
+                        startVal = tonumber(rect.prop.get(rect.inst)) or 0,
+                        startX = x
+                    }
+                    return true
+                elseif rect.prop.type ~= "string_ro" then
                     Properties.editField = rect
                     editText  = rect.prop.get(rect.inst)
+                    return true
                 end
-                return true
             end
         end
     end
     return true
 end
 
-function Properties.textinput(t)
-    if Properties.editField then
-        editText = editText .. t
+function Properties.mousemoved(x, y, dx, dy)
+    if Properties.dragField then
+        local delta = (x - Properties.dragField.startX) * dragSensitivity
+        local newVal = Properties.dragField.startVal + delta
+        -- Round based on precision needed
+        if Properties.dragField.key:find("Position") or Properties.dragField.key:find("Size") then
+            newVal = math.floor(newVal * 1000 + 0.5) / 1000
+        else
+            newVal = math.floor(newVal * 100 + 0.5) / 100
+        end
+        Properties.dragField.prop.set(Properties.dragField.inst, tostring(newVal))
+        return true
     end
+    return false
+end
+
+function Properties.mousereleased(x, y, button)
+    if button == 1 then
+        if Properties.dragField then
+            Properties.dragField = nil
+            return true
+        end
+    end
+    return false
+end
+
+function Properties.textinput(t)
+    if Properties.editField then editText = editText .. t end
 end
 
 function Properties.keypressed(key)
     if Properties.editField then
         if key == "return" or key == "kpenter" then
-            if Properties.editField.prop.set then
-                Properties.editField.prop.set(Properties.editField.inst, editText)
-            end
+            if Properties.editField.prop.set then Properties.editField.prop.set(Properties.editField.inst, editText) end
             Properties.editField = nil
-        elseif key == "escape" then
-            Properties.editField = nil
+        elseif key == "escape" then Properties.editField = nil
         elseif key == "backspace" then
             local byteoffset = utf8.offset(editText, -1)
-            if byteoffset then
-                editText = editText:sub(1, byteoffset - 1)
-            end
+            if byteoffset then editText = editText:sub(1, byteoffset - 1) end
         end
     end
 end
@@ -444,8 +433,7 @@ end
 function Properties.wheelmoved(x, y, panelX, panelY, panelW, panelH)
     local mx, my = love.mouse.getPosition()
     if Theme.inRect(mx, my, panelX, panelY, panelW, panelH) then
-        Properties.scrollY = Properties.scrollY + y * 18
-        Properties.scrollY = math.min(0, Properties.scrollY)
+        Properties.scrollY = math.min(0, Properties.scrollY + y * 18)
     end
 end
 

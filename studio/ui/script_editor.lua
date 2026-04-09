@@ -183,6 +183,8 @@ function ScriptEditor.openScript(name, content, instance)
         end
     end
 
+    content = content or (instance and instance.Source) or ""
+
     local lines = {}
     for line in (content .. "\n"):gmatch("(.-)\r?\n") do
         table.insert(lines, line)

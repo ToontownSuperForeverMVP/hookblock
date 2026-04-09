@@ -168,6 +168,17 @@ function UI.update(dt)
     -- Reset cursor (sub-modules like ScriptEditor will set specific cursors if needed)
     love.mouse.setCursor(love.mouse.getSystemCursor("arrow"))
 
+    -- Validate selection
+    if UI.selectedInstance then
+        local inst = UI.selectedInstance
+        local root = inst
+        while root.Parent do root = root.Parent end
+        if root.ClassName ~= "DataModel" and root.ClassName ~= "Workspace" then
+            -- Instance is no longer in the active tree (likely deleted/undone)
+            UI.selectedInstance = nil
+        end
+    end
+
     -- Check if window size changed
     local W, H = lg.getDimensions()
     if W ~= (cachedLayout.W or 0) or H ~= (cachedLayout.H or 0) then
