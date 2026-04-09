@@ -643,12 +643,14 @@ function UI.wheelmoved(x, y)
 end
 
 function UI.textinput(t)
+    if SettingsDialog.visible and SettingsDialog.textinput then SettingsDialog.textinput(t) return end
     if Explorer.searchFocused then Explorer.textinput(t)
     elseif Properties.isEditing() then Properties.textinput(t)
     elseif UI.activeTab == "Script" then ScriptEditor.textinput(t) end
 end
 
 function UI.keypressed(key)
+    if SettingsDialog.visible and SettingsDialog.keypressed then if SettingsDialog.keypressed(key) then return true end end
     if Explorer.searchFocused then Explorer.keypressed(key) return true end
     if Properties.isEditing() then Properties.keypressed(key) return true end
     if UI.activeTab == "Script" then ScriptEditor.keypressed(key) return true end

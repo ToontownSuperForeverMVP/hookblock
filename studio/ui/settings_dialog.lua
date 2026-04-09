@@ -172,7 +172,7 @@ function SettingsDialog.draw()
     Theme.drawRect(dx, tabY, dw, tabH, Theme.colors.bg_medium)
     Theme.drawDivider(dx, tabY + tabH - 1, dw, 1)
 
-    local tabs = {"General", "MCP"}
+    local tabs = {"General", "Editor", "MCP"}
     local tx = dx + 10
     for _, tab in ipairs(tabs) do
         local tw = Theme.fonts.small:getWidth(tab) + 20
@@ -308,6 +308,12 @@ function SettingsDialog.mousepressed(x, y, button)
             SettingsDialog.draggingSlider = true
             return true
         end
+    elseif SettingsDialog.activeTab == "Editor" then
+        if Theme.inRect(x, y, cx + 140, cy - 4, 260, 24) then
+            SettingsDialog.editingExternalEditor = true
+            return true
+        end
+        SettingsDialog.editingExternalEditor = false
     elseif SettingsDialog.activeTab == "MCP" then
         -- MCP Toggle
         if Theme.inRect(x, y, cx + 140, cy, 40, 20) then
@@ -332,6 +338,34 @@ function SettingsDialog.mousepressed(x, y, button)
     end
 
     return true
+end
+
+function SettingsDialog.keypressed(key)
+    if not SettingsDialog.visible then return false end
+    if SettingsDialog.editingExternalEditor then
+        if key == "backspace" then
+            local utf8 = require("utf8")
+            local str = SettingsDialog.settings.externalEditor
+            local byteoffset = utf8.offset(str, -1)
+            if byteoffset then
+                SettingsDialog.settings.externalEditor = str:sub(1, byteoffset - 1)
+            end
+            return true
+        elseif key == "return" or key == "escape" then
+            SettingsDialog.editingExternalEditor = false
+            return true
+        end
+    end
+    return false
+end
+
+function SettingsDialog.textinput(t)
+    if not SettingsDialog.visible then return false end
+    if SettingsDialog.editingExternalEditor then
+        SettingsDialog.settings.externalEditor = SettingsDialog.settings.externalEditor .. t
+        return true
+    end
+    return false
 end
 
 return SettingsDialog
