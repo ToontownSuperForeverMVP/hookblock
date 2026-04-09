@@ -1,86 +1,66 @@
-# Luvöxel Studio / HookBlock Engine
+# Luvöxel Studio
 
-Luvöxel Studio is a lightweight, 3D game development environment and engine inspired by the Roblox architecture, built entirely on top of the **LÖVE (Love2D)** framework. It features a familiar instance-property hierarchy, 3D workspace, and an integrated editor with Model Context Protocol (MCP) support for external tool integration.
+**Luvöxel Studio** (powered by the **HookBlock Engine**) is a high-performance, 3D game development environment and engine built on the **LÖVE (Love2D)** framework. The HookBlock Engine is a modified and extended version of the **g3d** engine, optimized for Roblox-style hierarchical object models and real-time physics. The studio provides a professional-grade suite of development tools, uniquely optimized for integration with AI-driven workflows via the Model Context Protocol (MCP).
 
-## Key Features
+## 🚀 Key Offerings
 
-- **Instance-Property System**: A hierarchical object model identical to the one found in Roblox (e.g., `Instance`, `Part`, `Workspace`, `Folder`).
-- **3D Engine**: Powered by **g3d**, providing a 3D rendering pipeline within the LÖVE 2D environment.
-- **Integrated Studio Environment**: 
-  - **Scene Explorer**: Navigate and manage object hierarchies.
-  - **Properties Editor**: Real-time manipulation of object properties.
-  - **Transformation Tools**: Standard Move, Scale, and Rotate gizmos.
-  - **Asset Browser**: Manage and import project assets.
-- **Built-in MCP Server**: Native support for the **Model Context Protocol**, allowing AI agents (like Gemini or Claude) to inspect the game tree, manipulate objects, and execute code within the engine.
-- **Roblox-like Lua Scripting**: A script runtime that supports Lua-based logic within the game hierarchy.
-- **Cross-Platform**: Runs on Windows, macOS, and Linux via Love2D.
+### 1. The Engine (HookBlock)
+A robust, object-oriented 3D engine with a strict Instance-Property hierarchy.
+- **Hierarchical Object Model**: Familiar `Instance`, `Part`, `Model`, `Workspace`, and `Folder` classes.
+- **Lua Scripting Runtime**: Support for `Script` and `ModuleScript` with a sandboxed environment, including a custom `Task` scheduler and `TweenService`.
+- **Integrated Physics**: A custom AABB-based 3D physics engine with gravity, rigid body dynamics, and collision detection.
+- **Character Support**: Built-in `Humanoid` and `Character` models with movement and health management.
+- **Optimized Rendering**: High-precision 3D pipeline featuring back-face culling, 24-bit depth buffering, and transparency sorting.
 
-## Getting Started
+### 2. The Studio (IDE)
+A full-featured development environment to build and manage 3D scenes.
+- **Scene Explorer**: Real-time tree view of the game hierarchy with drag-and-drop support.
+- **Properties Editor**: Dynamic UI for inspecting and modifying instance properties in real-time.
+- **Professional Transformation Tools**: Standard `Move`, `Scale`, and `Rotate` gizmos for precise spatial manipulation.
+- **Multi-Tab Script Editor**: A native Lua editor with syntax highlighting, auto-indentation, and multi-tab support for direct code editing within the engine.
+- **Asset Browser**: Centralized management for importing 3D models (`.obj`), textures, and fonts.
+- **Quality of Life**: Built-in Undo/Redo (`Ctrl+Z`/`Ctrl+Y`), Duplication (`Ctrl+D`), and Selection Focusing (`F`).
+
+### 3. MCP Integration (AI-Driven Development)
+The first engine of its kind to natively host a **Model Context Protocol (MCP)** server on `localhost:7111`.
+- **AI-Powered Manipulation**: Connect AI agents (like Gemini or Claude) to explore the game tree, inspect properties, and modify the scene remotely.
+- **Remote Code Execution**: Execute Lua code directly within the engine via the `eval` tool.
+- **Automated Scene Auditing**: Use tools to scan, refactor, or generate complex game hierarchies autonomously.
+
+## 🛠️ Getting Started
 
 ### Prerequisites
-
-You must have **LÖVE 11.x** installed on your system.
-
+You must have **LÖVE 11.x** installed.
 - **Windows/macOS/Linux**: Download from [love2d.org](https://love2d.org/).
 
 ### Running from Source
-
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/ToontownSuperForeverMVP/hookblock.git
+   git clone -b unstable https://github.com/ToontownSuperForeverMVP/hookblock.git
    cd hookblock
    ```
-
 2. **Launch with LÖVE**:
-   - **Windows**: Drag the `hookblock` folder onto `love.exe` or run:
-     ```bash
-     path/to/love.exe .
-     ```
-   - **macOS**:
-     ```bash
-     open -a love .
-     ```
-   - **Linux**:
-     ```bash
-     love .
-     ```
+   - **Windows**: `path/to/love.exe .`
+   - **macOS**: `open -a love .`
+   - **Linux**: `love .`
 
-## Quality of Life (QOL) Improvements
+## ⌨️ Studio Controls
+| Action | Shortcut |
+| :--- | :--- |
+| **Undo / Redo** | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
+| **Duplicate** | `Ctrl+D` |
+| **Delete** | `Delete` / `Backspace` |
+| **Group selection** | `Ctrl+G` |
+| **Focus Camera** | `F` |
+| **Save Scene** | `Ctrl+S` (saves to `save.json`) |
+| **Play / Stop** | `F5` / `F7` |
 
-The `qol` branch introduces several editor improvements to streamline the development workflow:
+## 📁 Architecture
+- `/engine`: Core runtime logic (`Instance`, `Vector3`, `Physics`, `PlayMode`).
+- `/studio`: The development UI, tools, and script editor.
+- `/g3d`: Lightweight 3D rendering library.
+- `/mcp`: Model Context Protocol server and tool implementation.
+- `/assets`: Default assets including models, icons, and textures.
 
-### Keyboard Shortcuts (Studio Mode)
-- **`Delete` / `Backspace`**: Delete selected instance.
-- **`Ctrl+D`**: Duplicate selected instance.
-- **`Ctrl+Z` / `Ctrl+Shift+Z`**: Undo / Redo.
-- **`Ctrl+Y`**: Redo.
-- **`Ctrl+S`**: Save scene to `save.json`.
-- **`Ctrl+G`**: Group selection into a Model.
-- **`F`**: Focus camera on selected instance.
-- **`F5` / `F6` / `F7`**: Play / Pause / Stop playtest.
-
-### Rendering & Precision
-- **Depth Buffer**: Enabled 24-bit depth buffer for correct 3D layering.
-- **Back-Face Culling**: Optimized rendering by culling non-visible internal faces.
-- **Improved Z-Precision**: Adjusted near-clip plane to reduce "Z-fighting" artifacts.
-- **Transparency Sorting**: Semi-transparent parts no longer "cut holes" into background geometry.
-
-## Engine Structure
-
-- `/engine`: The core runtime, including `Instance`, `Vector3`, `Color3`, `Physics`, and `Workspace`.
-- `/studio`: The development environment UI, gizmos, and editor state.
-- `/g3d`: The 3D rendering library.
-- `/mcp`: The Model Context Protocol server and tool dispatchers.
-- `/assets`: Default models, textures, and fonts.
-
-## MCP Integration
-
-Luvöxel Studio hosts an MCP server on `localhost:7111`. This allows external tools to:
-- **Search the Game Tree**: Find instances by name or class.
-- **Inspect Instances**: Read properties, attributes, and children.
-- **Execute Lua**: Run arbitrary code in the engine's environment.
-- **Transform Objects**: Move or rotate parts via external commands.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+## 📜 License
+Licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.
