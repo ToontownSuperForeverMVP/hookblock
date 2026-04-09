@@ -17,6 +17,25 @@ local menus = {
                 for i = #children, 1, -1 do
                     children[i]:setParent(nil)
                 end
+                
+                -- Create default scene
+                local Part = require("engine.part")
+                local SpawnLocation = require("engine.spawnlocation")
+                local Vector3 = require("engine.vector3")
+                local Color3 = require("engine.color3")
+
+                local baseplate = Part.new("Baseplate")
+                baseplate.Size     = Vector3.new(100, 4, 100)
+                baseplate.Position = Vector3.new(0, -2, 0)
+                baseplate.Color    = Color3.new(0.3, 0.3, 0.3)
+                baseplate.Anchored = true
+                baseplate:setTexture("assets/grid.png")
+                baseplate:setParent(Engine.Workspace)
+
+                local spawn = SpawnLocation.new("SpawnLocation")
+                spawn.Position = Vector3.new(0, 0.5, 0)
+                spawn:setParent(Engine.Workspace)
+
                 if _G._UI then _G._UI.selectedInstance = nil end
                 if Engine.History then Engine.History:clear() end
                 if _G._Notifications then _G._Notifications.show("New scene created", "info") end
@@ -24,19 +43,20 @@ local menus = {
             end},
             {label = "Open...", key = "Ctrl+O", action = function()
                 local Serializer = require("engine.serializer")
-                local workspace, err = Serializer.loadFromFile("save.json")
-                if workspace then
+                local path = "projects/" .. (Engine.CurrentProject or "default") .. "/workspace.json"
+                local loadedWorkspace, err = Serializer.loadFromFile(path)
+                if loadedWorkspace then
                     -- Replace workspace children
                     local children = Engine.Workspace:GetChildren()
                     for i = #children, 1, -1 do
                         children[i]:setParent(nil)
                     end
-                    for _, child in ipairs(workspace:GetChildren()) do
+                    for _, child in ipairs(loadedWorkspace:GetChildren()) do
                         child:setParent(Engine.Workspace)
                     end
                     if _G._UI then _G._UI.selectedInstance = nil end
                     if Engine.History then Engine.History:clear() end
-                    if _G._Notifications then _G._Notifications.show("Scene loaded from save.json", "info") end
+                    if _G._Notifications then _G._Notifications.show("Scene loaded", "info") end
                 else
                     if _G._Notifications then _G._Notifications.show("Open failed: " .. tostring(err), "error") end
                     print("[Luvoxel] Open failed: " .. tostring(err))
@@ -44,15 +64,26 @@ local menus = {
             end},
             {label = "Save",   key = "Ctrl+S", action = function()
                 local Serializer = require("engine.serializer")
-                Serializer.saveToFile(Engine.Workspace, "save.json")
-                if _G._Notifications then _G._Notifications.show("Scene saved to save.json", "info") end
+                local path = "projects/" .. (Engine.CurrentProject or "default") .. "/workspace.json"
+                Serializer.saveToFile(Engine.Workspace, path)
+                if _G._Notifications then _G._Notifications.show("Scene saved", "info") end
             end},
             {label = "Settings", key = "Ctrl+,", action = function()
                 local SettingsDialog = require("studio.ui.settings_dialog")
                 SettingsDialog.open()
             end},
             {label = "---"},
-            {label = "Quit",   key = "Alt+F4", action = function() love.event.quit() end},
+            {label = "Quit",   key = "Alt+F4", action = function() 
+                -- Go back to start menu
+                if _G.Studio and _G.Studio.cleanup then _G.Studio.cleanup() end
+                Engine.Game = nil
+                Engine.Workspace = nil
+                Engine.Lighting = nil
+                -- Accessing appState via _G since it's local in main.lua is not possible directly, 
+                -- but we can assume main.lua handles the state transition if we provide a hook or trigger.
+                -- For now, we will use a global flag that main.lua checks.
+                _G._RequestedState = "start"
+            end},
         }
     },
     {

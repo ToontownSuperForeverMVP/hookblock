@@ -15,6 +15,7 @@ Explorer.showContext   = false
 Explorer.contextX, Explorer.contextY = 0, 0
 Explorer.searchText    = ""
 Explorer.searchFocused = false
+Explorer.dragInst      = nil -- Instance currently being dragged
 
 local rowRects = {}
 local flatList = {}
@@ -312,9 +313,14 @@ function Explorer.draw(panelX, panelY, panelW, panelH)
         for j, item in ipairs(CONTEXT_ITEMS) do
             if item.label == "---" then Theme.drawDivider(cmX + 4, iy + rh2 / 2, cmW - 8, 1, false)
             else
-                if Theme.inRect(mx, my, cmX, iy, cmW, rh2) then
+                local hovering = Theme.inRect(mx, my, cmX, iy, cmW, rh2)
+                if hovering then
                     Theme.drawRect(cmX + 2, iy + 1, cmW - 4, rh2 - 2, Theme.colors.bg_hover, 2)
-                    if item.sub then activeSubmenu = {items = item.sub, x = cmX + cmW, y = iy} end
+                    if item.sub then 
+                        activeSubmenu = {items = item.sub, x = cmX + cmW, y = iy} 
+                    else
+                        activeSubmenu = nil
+                    end
                 end
                 Theme.drawText(item.label, cmX + 10, iy + 4, Theme.colors.text_primary, Theme.fonts.normal)
                 if item.sub then Theme.drawText(">", cmX + cmW - 15, iy + 4, Theme.colors.text_secondary, Theme.fonts.normal) end
@@ -336,8 +342,13 @@ function Explorer.draw(panelX, panelY, panelW, panelH)
                 submenuRects[k] = {x = sub.x, y = siy, w = smW, h = rh2, item = sitem}
                 siy = siy + rh2
             end
-            if not Theme.inRect(mx, my, cmX, cmY, cmW, cmH) and not Theme.inRect(mx, my, sub.x, sub.y, smW, smH) then activeSubmenu = nil end
         end
+    end
+
+    -- Drag visual
+    if Explorer.dragInst then
+        Theme.drawRect(mx + 12, my + 12, 120, 22, {0.1, 0.1, 0.1, 0.7}, 4)
+        Theme.drawText(Explorer.dragInst.Name, mx + 18, my + 16, Theme.colors.text_primary, Theme.fonts.small)
     end
 end
 
@@ -351,9 +362,9 @@ function Explorer.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
         end
         for _, rect in ipairs(contextRects) do
             if Theme.inRect(x, y, rect.x, rect.y, rect.w, rect.h) then
+                if rect.item.sub then return true end
                 if rect.item.action then rect.item.action(Explorer.contextTarget) end
-                if not rect.item.sub then Explorer.showContext = false return true end
-                return true
+                Explorer.showContext = false return true
             end
         end
         Explorer.showContext = false return true
@@ -379,6 +390,7 @@ function Explorer.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
         for _, rect in ipairs(rowRects) do
             if Theme.inRect(x, y, rect.x, rect.y, rect.w, rect.h) then
                 Explorer.contextTarget, Explorer.contextX, Explorer.contextY, Explorer.showContext = rect.inst, x, y, true
+                if _G._UI then _G._UI.selectedInstance = rect.inst end
                 return true
             end
         end
@@ -394,6 +406,7 @@ function Explorer.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
                     needsRefresh = true
                 else
                     if _G._UI then _G._UI.selectedInstance = rect.inst end
+                    Explorer.dragInst = rect.inst
                     local now = os.clock()
                     if Explorer._lastClick and Explorer._lastClick.inst == rect.inst and (now - Explorer._lastClick.time < 0.3) then
                         if rect.inst.ClassName == "Script" or rect.inst.ClassName == "ModuleScript" then
@@ -407,6 +420,22 @@ function Explorer.mousepressed(x, y, button, panelX, panelY, panelW, panelH)
         end
     end
     return false
+end
+
+function Explorer.mousereleased(x, y, button, panelX, panelY, panelW, panelH)
+    if button == 1 and Explorer.dragInst then
+        for _, rect in ipairs(rowRects) do
+            if Theme.inRect(x, y, rect.x, rect.y, rect.w, rect.h) then
+                local target = rect.inst
+                if target ~= Explorer.dragInst and (target.ClassName == "Folder" or target.ClassName == "Model" or target.ClassName == "Workspace") then
+                    Explorer.dragInst.Parent = target
+                    needsRefresh = true
+                end
+                break
+            end
+        end
+        Explorer.dragInst = nil
+    end
 end
 
 function Explorer.keypressed(key)

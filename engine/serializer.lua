@@ -1,6 +1,6 @@
 -- engine/serializer.lua
 -- Save/Load workspace to/from JSON-like Lua table format
--- Uses a simple JSON encoder/decoder since Love2D doesn't include one
+-- Generic property-based serialization
 
 local Vector3 = require("engine.vector3")
 local Color3 = require("engine.color3")
@@ -26,13 +26,9 @@ local function jsonEncode(val, indent, currentIndent)
     elseif type(val) == "string" then
         return '"' .. val:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r'):gsub('\t', '\\t') .. '"'
     elseif type(val) == "table" then
-        -- Check if it's a Vector3 or Color3 by looking at its metatable or structure
-        -- But for JSON we want to treat them as objects {x,y,z} or {r,g,b}
-        
         -- Check if array
         local isArray = #val > 0 or next(val) == nil
         if isArray and #val > 0 then
-            -- Verify it's truly an array
             for k in pairs(val) do
                 if type(k) ~= "number" then
                     isArray = false
@@ -50,7 +46,6 @@ local function jsonEncode(val, indent, currentIndent)
             return "[\n" .. table.concat(items, ",\n") .. "\n" .. currentIndent .. "]"
         else
             local items = {}
-            -- Sort keys for deterministic output
             local keys = {}
             for k in pairs(val) do
                 if type(k) == "string" then
@@ -71,19 +66,14 @@ end
 -- Simple JSON decoder
 local function jsonDecode(str)
     local pos = 1
-
     local function skipWhitespace()
-        while pos <= #str and str:sub(pos, pos):match("%s") do
-            pos = pos + 1
-        end
+        while pos <= #str and str:sub(pos, pos):match("%s") do pos = pos + 1 end
     end
 
     local function parseValue()
         skipWhitespace()
         local c = str:sub(pos, pos)
-
         if c == '"' then
-            -- String
             pos = pos + 1
             local result = {}
             while pos <= #str do
@@ -106,14 +96,10 @@ local function jsonDecode(str)
                 pos = pos + 1
             end
         elseif c == '{' then
-            -- Object
             pos = pos + 1
             local obj = {}
             skipWhitespace()
-            if str:sub(pos, pos) == '}' then
-                pos = pos + 1
-                return obj
-            end
+            if str:sub(pos, pos) == '}' then pos = pos + 1; return obj end
             while true do
                 skipWhitespace()
                 local key = parseValue()
@@ -122,177 +108,102 @@ local function jsonDecode(str)
                 local val = parseValue()
                 obj[key] = val
                 skipWhitespace()
-                if str:sub(pos, pos) == ',' then
-                    pos = pos + 1
-                else
-                    break
-                end
+                if str:sub(pos, pos) == ',' then pos = pos + 1 else break end
             end
             skipWhitespace()
             if str:sub(pos, pos) == '}' then pos = pos + 1 end
             return obj
         elseif c == '[' then
-            -- Array
             pos = pos + 1
             local arr = {}
             skipWhitespace()
-            if str:sub(pos, pos) == ']' then
-                pos = pos + 1
-                return arr
-            end
+            if str:sub(pos, pos) == ']' then pos = pos + 1; return arr end
             while true do
                 table.insert(arr, parseValue())
                 skipWhitespace()
-                if str:sub(pos, pos) == ',' then
-                    pos = pos + 1
-                else
-                    break
-                end
+                if str:sub(pos, pos) == ',' then pos = pos + 1 else break end
             end
             skipWhitespace()
             if str:sub(pos, pos) == ']' then pos = pos + 1 end
             return arr
-        elseif c == 't' then
-            pos = pos + 4
-            return true
-        elseif c == 'f' then
-            pos = pos + 5
-            return false
-        elseif c == 'n' then
-            pos = pos + 4
-            return nil
+        elseif str:sub(pos, pos+3) == 'true' then pos = pos + 4; return true
+        elseif str:sub(pos, pos+4) == 'false' then pos = pos + 5; return false
+        elseif str:sub(pos, pos+3) == 'null' then pos = pos + 4; return nil
         else
-            -- Number
             local numStr = str:match("%-?%d+%.?%d*[eE]?[+-]?%d*", pos)
-            if numStr then
-                pos = pos + #numStr
-                return tonumber(numStr)
-            end
+            if numStr then pos = pos + #numStr; return tonumber(numStr) end
         end
     end
-
     return parseValue()
 end
 
--- Serialize children list
-function Serializer.serializeChildren(inst)
-    local children = inst:GetChildren()
-    local list = {}
-    for _, child in ipairs(children) do
-        if not child._runtimeOnly then
-            table.insert(list, Serializer.serializeInstance(child))
-        end
-    end
-    return list
-end
-
--- Deserialize list of children and parent them
-function Serializer.deserializeChildren(childrenData, parent)
-    if not childrenData then return end
-    for _, childData in ipairs(childrenData) do
-        local child = Serializer.deserializeInstance(childData)
-        if child then
-            child:setParent(parent)
-        end
-    end
-end
-
--- Serialize an instance tree to a Lua table
+-- Generic property serialization
 function Serializer.serializeInstance(inst)
+    local props = rawget(inst, "_properties") or inst
     local data = {
         ClassName = inst.ClassName,
-        Name = inst.Name,
     }
 
-    -- Serialize known properties per class
-    if inst.Position then
-        data.Position = {x = inst.Position.x, y = inst.Position.y, z = inst.Position.z}
-    end
-    if inst.Size then
-        data.Size = {x = inst.Size.x, y = inst.Size.y, z = inst.Size.z}
-    end
-    if inst.Rotation then
-        data.Rotation = {x = inst.Rotation.x, y = inst.Rotation.y, z = inst.Rotation.z}
-    end
-    if inst.Color then
-        -- Handle both Color3 and old table format
-        if type(inst.Color) == "table" and inst.Color.r then
-            data.Color = {inst.Color.r, inst.Color.g, inst.Color.b, inst.Color.a or 1}
-        else
-            data.Color = {inst.Color[1], inst.Color[2], inst.Color[3], inst.Color[4] or 1}
+    -- Fields to skip
+    local skip = {
+        Parent = true, Changed = true, _children = true, _destroyed = true,
+        _propertySignals = true, model = true, ClassName = true,
+        _runtimeOnly = true, _cachedLightValue = true, _lightTimer = true,
+        _lastLightPos = true, Texture = true, _lastClick = true,
+        _properties = true,
+    }
+
+    for k, v in pairs(props) do
+        if not skip[k] and type(v) ~= "function" and type(k) == "string" then
+            if type(v) == "table" then
+                local mt = getmetatable(v)
+                if mt == Vector3 then
+                    data[k] = {x = v.x, y = v.y, z = v.z, _type = "Vector3"}
+                elseif mt == Color3 then
+                    data[k] = {r = v.r, g = v.g, b = v.b, a = v.a or 1, _type = "Color3"}
+                end
+            else
+                data[k] = v
+            end
         end
     end
-    if inst.Transparency ~= nil then
-        data.Transparency = inst.Transparency
-    end
-    if inst.Anchored ~= nil then
-        data.Anchored = inst.Anchored
-    end
-    if inst.CanCollide ~= nil then
-        data.CanCollide = inst.CanCollide
-    end
-    if inst.Material then
-        data.Material = inst.Material
-    end
-    if inst.Shape then
-        data.Shape = inst.Shape
-    end
-    if inst.Locked ~= nil then
-        data.Locked = inst.Locked
-    end
-    if inst.TexturePath then
-        data.Texture = inst.TexturePath
-    end
-    if inst.Velocity then
-        data.Velocity = {x = inst.Velocity.x, y = inst.Velocity.y, z = inst.Velocity.z}
-    end
 
-    -- Humanoid specific
-    if inst:IsA("Humanoid") then
-        data.Health = inst.Health
-        data.MaxHealth = inst.MaxHealth
-        data.WalkSpeed = inst.WalkSpeed
-        data.JumpPower = inst.JumpPower
-    end
-
-    -- SpawnLocation specific
-    if inst:IsA("SpawnLocation") then
-        data.Duration = inst.Duration
-        data.Enabled = inst.Enabled
-        data.Neutral = inst.Neutral
-    end
-    
-    -- Script specific
-    if inst:IsA("Script") or inst:IsA("ModuleScript") then
-        data.Source = inst.Source
-        if inst.Disabled ~= nil then data.Disabled = inst.Disabled end
-    end
-
-    -- Value instance specific
-    if inst.Value ~= nil then
-        if type(inst.Value) == "table" then
-            if inst:IsA("Vector3Value") then
-                data.Value = {x = inst.Value.x, y = inst.Value.y, z = inst.Value.z}
-            elseif inst:IsA("Color3Value") then
-                data.Value = {inst.Value.r, inst.Value.g, inst.Value.b, inst.Value.a or 1}
+    -- Also check base table for any other properties not in _properties
+    for k, v in pairs(inst) do
+        if not skip[k] and not props[k] and type(v) ~= "function" and type(k) == "string" then
+            if type(v) == "table" then
+                local mt = getmetatable(v)
+                if mt == Vector3 then
+                    data[k] = {x = v.x, y = v.y, z = v.z, _type = "Vector3"}
+                elseif mt == Color3 then
+                    data[k] = {r = v.r, g = v.g, b = v.b, a = v.a or 1, _type = "Color3"}
+                end
+            else
+                data[k] = v
             end
-        else
-            data.Value = inst.Value
         end
     end
 
     -- Serialize children
     local children = inst:GetChildren()
     if #children > 0 then
-        data.Children = Serializer.serializeChildren(inst)
+        local childrenData = {}
+        for _, child in ipairs(children) do
+            if not child._runtimeOnly then
+                table.insert(childrenData, Serializer.serializeInstance(child))
+            end
+        end
+        if #childrenData > 0 then
+            data.Children = childrenData
+        end
     end
 
     return data
 end
 
--- Deserialize a Lua table back into an instance tree
-function Serializer.deserializeInstance(data)
-    -- Make sure all engine classes are loaded
+-- Generic property deserialization
+function Serializer.deserializeInstance(data, existingInst)
+    -- Ensure classes are loaded
     require("engine.part")
     require("engine.spawnlocation")
     require("engine.model")
@@ -303,13 +214,13 @@ function Serializer.deserializeInstance(data)
     require("engine.game")
     require("engine.folder")
     require("engine.value_instances")
+    require("engine.lighting")
 
-    local inst
-    if data.ClassName == "DataModel" then
-        inst = Engine.Game
-    else
-        -- Check if it's a service already present in Engine.Game
-        if Engine.Game and Engine.Game:FindFirstChild(data.Name) then
+    local inst = existingInst
+    if not inst then
+        if data.ClassName == "DataModel" then
+            inst = Engine.Game
+        elseif Engine.Game and Engine.Game:FindFirstChild(data.Name) and (data.ClassName == "Workspace" or data.ClassName == "Lighting" or data.ClassName == "StarterGui") then
             inst = Engine.Game:FindFirstChild(data.Name)
         else
             inst = Instance.new(data.ClassName, data.Name)
@@ -319,74 +230,44 @@ function Serializer.deserializeInstance(data)
     if not inst then return nil end
 
     -- Restore properties
-    if data.Position then
-        inst.Position = Vector3.new(data.Position.x, data.Position.y, data.Position.z)
-    end
-    if data.Size then
-        inst.Size = Vector3.new(data.Size.x, data.Size.y, data.Size.z)
-    end
-    if data.Rotation then
-        inst.Rotation = Vector3.new(data.Rotation.x, data.Rotation.y, data.Rotation.z)
-    end
-    if data.Color then
-        inst.Color = Color3.new(data.Color[1], data.Color[2], data.Color[3])
-        if data.Color[4] then inst.Color.a = data.Color[4] end
-    end
-    if data.Transparency ~= nil then inst.Transparency = data.Transparency end
-    if data.Anchored ~= nil then inst.Anchored = data.Anchored end
-    if data.CanCollide ~= nil then inst.CanCollide = data.CanCollide end
-    if data.Material then inst.Material = data.Material end
-    if data.Shape and inst.setShape then inst:setShape(data.Shape) end
-    if data.Locked ~= nil then inst.Locked = data.Locked end
-    if data.Texture and inst.setTexture then inst:setTexture(data.Texture) end
-    if data.Velocity then
-        inst.Velocity = Vector3.new(data.Velocity.x, data.Velocity.y, data.Velocity.z)
-    end
-
-    -- Humanoid specific
-    if inst:IsA("Humanoid") then
-        if data.Health then inst.Health = data.Health end
-        if data.MaxHealth then inst.MaxHealth = data.MaxHealth end
-        if data.WalkSpeed then inst.WalkSpeed = data.WalkSpeed end
-        if data.JumpPower then inst.JumpPower = data.JumpPower end
-    end
-
-    -- SpawnLocation specific
-    if inst:IsA("SpawnLocation") then
-        if data.Duration then inst.Duration = data.Duration end
-        if data.Enabled ~= nil then inst.Enabled = data.Enabled end
-        if data.Neutral ~= nil then inst.Neutral = data.Neutral end
-    end
-    
-    -- Script specific
-    if inst:IsA("Script") or inst:IsA("ModuleScript") then
-        if data.Source then inst.Source = data.Source end
-        if data.Disabled ~= nil then inst.Disabled = data.Disabled end
-    end
-
-    -- Value instance specific
-    if data.Value ~= nil then
-        if inst:IsA("Vector3Value") then
-            inst.Value = Vector3.new(data.Value.x, data.Value.y, data.Value.z)
-        elseif inst:IsA("Color3Value") then
-            inst.Value = Color3.new(data.Value[1], data.Value[2], data.Value[3])
-            if data.Value[4] then inst.Value.a = data.Value[4] end
-        else
-            inst.Value = data.Value
+    for k, v in pairs(data) do
+        if k ~= "ClassName" and k ~= "Children" then
+            if type(v) == "table" and v._type then
+                if v._type == "Vector3" then
+                    inst[k] = Vector3.new(v.x, v.y, v.z)
+                elseif v._type == "Color3" then
+                    inst[k] = Color3.new(v.r, v.g, v.b)
+                    if v.a then inst[k].a = v.a end
+                end
+            else
+                -- Special case for Shape and TexturePath to use setter if available
+                if k == "Shape" and inst.setShape then
+                    inst:setShape(v)
+                elseif k == "TexturePath" and inst.setTexture then
+                    inst:setTexture(v)
+                else
+                    inst[k] = v
+                end
+            end
         end
     end
 
     -- Deserialize children
     if data.Children then
-        Serializer.deserializeChildren(data.Children, inst)
+        for _, childData in ipairs(data.Children) do
+            local child = Serializer.deserializeInstance(childData)
+            if child then
+                child:setParent(inst)
+            end
+        end
     end
 
     return inst
 end
 
--- Save workspace to file
-function Serializer.saveToFile(workspace, filepath)
-    local data = Serializer.serializeInstance(workspace)
+-- Save instance tree to file
+function Serializer.saveToFile(inst, filepath)
+    local data = Serializer.serializeInstance(inst)
     local json = jsonEncode(data)
 
     local success, err = love.filesystem.write(filepath, json)
@@ -399,29 +280,20 @@ function Serializer.saveToFile(workspace, filepath)
     end
 end
 
--- Load workspace from file
+-- Load instance tree from file
 function Serializer.loadFromFile(filepath)
     local info = love.filesystem.getInfo(filepath)
     if not info then
-        print("[Luvoxel] File not found: " .. filepath)
         return nil, "File not found"
     end
 
     local content, err = love.filesystem.read(filepath)
-    if not content then
-        print("[Luvoxel] Read failed: " .. tostring(err))
-        return nil, err
-    end
+    if not content then return nil, err end
 
     local data = jsonDecode(content)
-    if not data then
-        print("[Luvoxel] Failed to parse file")
-        return nil, "Parse error"
-    end
+    if not data then return nil, "Parse error" end
 
-    local workspace = Serializer.deserializeInstance(data)
-    print("[Luvoxel] Loaded from " .. filepath)
-    return workspace
+    return Serializer.deserializeInstance(data)
 end
 
 -- Expose JSON utilities

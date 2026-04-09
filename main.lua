@@ -122,12 +122,21 @@ function love.load()
                     -- Load from file
                     local path = "projects/" .. projName .. "/workspace.json"
                     if love.filesystem.getInfo(path) then
-                        local loadedWorkspace = Serializer.loadFromFile(path)
-                        if loadedWorkspace then
-                            -- Replace the newly created workspace with the loaded one
-                            Engine.Workspace = loadedWorkspace
+                        local loaded = Serializer.loadFromFile(path)
+                        if loaded then
+                            -- Clear current workspace children
+                            local currentChildren = Engine.Workspace:GetChildren()
+                            for i = #currentChildren, 1, -1 do
+                                currentChildren[i]:setParent(nil)
+                            end
+                            -- Add loaded children
+                            for _, child in ipairs(loaded:GetChildren()) do
+                                child:setParent(Engine.Workspace)
+                            end
+                            print("[Luvoxel] Loaded workspace from " .. path)
                         else
                             print("[Error] Failed to load workspace!")
+                            isNew = true
                         end
                     else
                         print("[Warning] Save file not found: " .. path)
@@ -143,6 +152,7 @@ function love.load()
                     baseplate.Position = Vector3.new(0, -2, 0)
                     baseplate.Color    = Color3.new(0.3, 0.3, 0.3)
                     baseplate.Anchored = true
+                    baseplate.Locked   = true
                     baseplate:setTexture("assets/grid.png")
                     baseplate:setParent(Engine.Workspace)
 
@@ -176,6 +186,16 @@ function love.load()
 end
 
 function love.update(dt)
+    -- State transition requested
+    if _G._RequestedState then
+        appState = _G._RequestedState
+        _G._RequestedState = nil
+        if appState == "start" then
+            StartMenu.init(StartMenu._callback) -- Re-init start menu
+        end
+        return
+    end
+
     if appState == "start" then
         StartMenu.update(dt)
         return

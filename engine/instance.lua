@@ -12,12 +12,18 @@ Instance.ClassName = "Instance"
 local InstanceMeta = {}
 
 function InstanceMeta.__index(t, k)
-    -- 1. Check properties/methods of the instance's class (metatable)
+    -- 1. Check hidden properties first
+    local props = rawget(t, "_properties")
+    if props and props[k] ~= nil then
+        return props[k]
+    end
+
+    -- 2. Check properties/methods of the instance's class (metatable)
     local cls = getmetatable(t)
     local v = cls[k]
     if v ~= nil then return v end
     
-    -- 2. Fallback to children lookup by name
+    -- 3. Fallback to children lookup by name
     local children = rawget(t, "_children")
     if children then
         for _, child in ipairs(children) do
@@ -33,49 +39,51 @@ end
 function InstanceMeta.__newindex(t, k, v)
     if k == "Parent" then
         t:setParent(v)
-    else
-        -- Fluid conversion for common properties
-        if k == "Position" or k == "Size" or k == "Rotation" or k == "Velocity" then
-            if type(v) == "table" and getmetatable(v) ~= Vector3 then
-                v = Vector3.new(v.x or v[1] or 0, v.y or v[2] or 0, v.z or v[3] or 0)
-            end
-            -- Hook up change listener
-            if getmetatable(v) == Vector3 then
-                v._onChange = function()
-                    if t.Changed then t.Changed:Fire(k) end
-                    local signals = rawget(t, "_propertySignals")
-                    if signals and signals[k] then signals[k]:Fire(v) end
-                end
-            end
-        elseif k == "Color" then
-            if type(v) == "table" and getmetatable(v) ~= Color3 then
-                v = Color3.new(v.r or v[1] or 1, v.g or v[2] or 1, v.b or v[3] or 1)
-                if v.a == nil and (v[4] or v.a) then v.a = v[4] or v.a end
-            end
-            -- Hook up change listener
-            if getmetatable(v) == Color3 then
-                v._onChange = function()
-                    if t.Changed then t.Changed:Fire(k) end
-                    local signals = rawget(t, "_propertySignals")
-                    if signals and signals[k] then signals[k]:Fire(v) end
-                end
+        return
+    end
+
+    -- Fluid conversion for common properties
+    if k == "Position" or k == "Size" or k == "Rotation" or k == "Velocity" then
+        if type(v) == "table" and getmetatable(v) ~= Vector3 then
+            v = Vector3.new(v.x or v[1] or 0, v.y or v[2] or 0, v.z or v[3] or 0)
+        end
+        -- Hook up change listener
+        if getmetatable(v) == Vector3 then
+            v._onChange = function()
+                if t.Changed then t.Changed:Fire(k) end
+                local signals = rawget(t, "_propertySignals")
+                if signals and signals[k] then signals[k]:Fire(v) end
             end
         end
+    elseif k == "Color" then
+        if type(v) == "table" and getmetatable(v) ~= Color3 then
+            v = Color3.new(v.r or v[1] or 1, v.g or v[2] or 1, v.b or v[3] or 1)
+            if v.a == nil and (v[4] or v.a) then v.a = v[4] or v.a end
+        end
+        -- Hook up change listener
+        if getmetatable(v) == Color3 then
+            v._onChange = function()
+                if t.Changed then t.Changed:Fire(k) end
+                local signals = rawget(t, "_propertySignals")
+                if signals and signals[k] then signals[k]:Fire(v) end
+            end
+        end
+    end
 
-        local old = rawget(t, k)
-        rawset(t, k, v)
+    local props = rawget(t, "_properties")
+    local old = props[k]
+    props[k] = v
+    
+    -- Fire Changed signal if it exists and value changed
+    if old ~= v then
+        if t.Changed then
+            t.Changed:Fire(k)
+        end
         
-        -- Fire Changed signal if it exists and value changed
-        if old ~= v then
-            if t.Changed then
-                t.Changed:Fire(k)
-            end
-            
-            -- Fire property-specific signal
-            local signals = rawget(t, "_propertySignals")
-            if signals and signals[k] then
-                signals[k]:Fire(v)
-            end
+        -- Fire property-specific signal
+        local signals = rawget(t, "_propertySignals")
+        if signals and signals[k] then
+            signals[k]:Fire(v)
         end
     end
 end
@@ -90,7 +98,7 @@ function Instance.register(className, classTable)
     registry[className] = classTable
     -- Ensure class table uses our meta methods if it doesn't already
     if not classTable.__index then classTable.__index = classTable end
-    if not classTable.__newindex then classTable.__newindex = InstanceMeta.__newindex end
+    -- We don't set __newindex on the class table itself, but on the instances
 end
 
 function Instance.new(className, name)
@@ -99,25 +107,31 @@ function Instance.new(className, name)
     end
     
     -- Default base instance if not registered
-    local self = setmetatable({}, Instance)
+    local self = setmetatable({_properties = {}}, Instance)
     self:init(className or "Instance", name)
     return self
 end
 
 function Instance:init(className, name)
-    self.ClassName = className or "Instance"
-    self.Name = name or self.ClassName
+    local props = rawget(self, "_properties") or {}
+    rawset(self, "_properties", props)
+    
+    props.ClassName = className or "Instance"
+    props.Name = name or props.ClassName
+    props.Locked = false
+    
     rawset(self, "_children", {})
     rawset(self, "_destroyed", false)
     rawset(self, "_propertySignals", {})
-    rawset(self, "Parent", nil)
-    self.Locked = false
+    rawset(self, "Parent", nil) -- Note: setParent uses rawget/set
     
     -- Signals
     self.Changed = Signal.new()
 end
 
--- Re-assign methods to Instance so they are available to all
+-- ... rest of methods ...
+-- I will keep the rest of the file content but ensures it uses the new structure.
+
 function Instance:GetPropertyChangedSignal(property)
     local signals = rawget(self, "_propertySignals")
     if not signals[property] then
@@ -180,11 +194,9 @@ function Instance:IsA(className)
     if className == "Instance" then return true end
     if self.ClassName == className then return true end
     
-    -- Walk up the metatable chain
     local mt = getmetatable(self)
     while mt do
         if mt.ClassName == className then return true end
-        -- In our system, the class's metatable's __index is the superclass
         local superMt = getmetatable(mt)
         if superMt and superMt.__index then
             mt = superMt.__index
@@ -192,7 +204,6 @@ function Instance:IsA(className)
             break
         end
     end
-    
     return false
 end
 
@@ -202,7 +213,6 @@ function Instance:setParent(newParent)
     if newParent == currentParent then return end
     if newParent == self then return end
 
-    -- Prevent circular references
     local curr = newParent
     while curr do
         if curr == self then
@@ -238,16 +248,13 @@ function Instance:Destroy()
     if rawget(self, "_destroyed") then return end
     rawset(self, "_destroyed", true)
     
-    -- Destroy all children first
     local children = rawget(self, "_children")
     for i = #children, 1, -1 do
         children[i]:Destroy()
     end
     
-    -- Remove from parent
     self:setParent(nil)
     
-    -- Destroy signals
     if self.Changed then
         self.Changed:Destroy()
     end
@@ -269,30 +276,16 @@ function Instance:Clone()
         clone = Instance.new(self.ClassName, self.Name)
     end
     
-    -- Copy properties (everything that isn't internal or a function)
-    for k, v in pairs(self) do
-        if type(v) ~= "function" and 
-           k ~= "Parent" and 
-           k ~= "_children" and 
-           k ~= "Changed" and 
-           k ~= "_destroyed" and 
-           k ~= "_propertySignals" and 
-           k ~= "model" then
-           
+    local props = rawget(self, "_properties")
+    for k, v in pairs(props) do
+        if k ~= "ClassName" and k ~= "Name" then
             if type(v) == "table" then
-                -- Shallow copy table properties (Vector3, Color3, etc.)
                 local copy = {}
                 for tk, tv in pairs(v) do
-                    if tk ~= "_onChange" then
-                        copy[tk] = tv
-                    end
+                    if tk ~= "_onChange" then copy[tk] = tv end
                 end
-                -- If it was a Vector3/Color3, restore metatable
-                if getmetatable(v) == Vector3 then
-                    setmetatable(copy, Vector3)
-                elseif getmetatable(v) == Color3 then
-                    setmetatable(copy, Color3)
-                end
+                if getmetatable(v) == Vector3 then setmetatable(copy, Vector3)
+                elseif getmetatable(v) == Color3 then setmetatable(copy, Color3) end
                 clone[k] = copy
             else
                 clone[k] = v
@@ -300,7 +293,6 @@ function Instance:Clone()
         end
     end
     
-    -- Clone children
     local children = rawget(self, "_children")
     for _, child in ipairs(children) do
         local childClone = child:Clone()
