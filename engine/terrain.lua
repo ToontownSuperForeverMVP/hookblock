@@ -1,7 +1,5 @@
 -- engine/terrain.lua
 local Instance = require("engine.instance")
-local Vector3 = require("engine.vector3")
-local Color3 = require("engine.color3")
 local g3d = require("g3d")
 
 local Terrain = setmetatable({}, {__index = Instance})
@@ -200,7 +198,7 @@ function Terrain:updateMesh()
     end
     
     -- Also update physics collisions if needed
-    -- (A simple implementation would create an invisible mesh for Physics, 
+    -- (A simple implementation would create an invisible mesh for Physics,
     -- but for now let's just do rendering and hook raycasting)
 end
 

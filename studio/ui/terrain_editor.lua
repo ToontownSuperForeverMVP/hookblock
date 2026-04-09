@@ -14,15 +14,13 @@ TerrainEditor.params = {
 }
 
 local activeSlider = nil
-local activeInput = nil
-local inputText = ""
 local scrollY = 0
 
 function TerrainEditor.load()
 end
 
 function TerrainEditor.update(dt)
-    local mx, my = love.mouse.getPosition()
+    local mx, _ = love.mouse.getPosition()
     if activeSlider then
         if not love.mouse.isDown(1) then
             activeSlider = nil
@@ -84,7 +82,7 @@ function TerrainEditor.draw(x, y, w, h)
     TerrainEditor.sliderHitboxes = {}
     
     local function addSlider(label, param, min, max, isInt)
-        local sx, sy, sw, sh, sTrackX, sTrackW = drawSlider(label, param, x + 10, cy, w - 20, min, max, isInt)
+        local _, sy, _, sh, sTrackX, sTrackW = drawSlider(label, param, x + 10, cy, w - 20, min, max, isInt)
         table.insert(TerrainEditor.sliderHitboxes, {
             param = param, x = sTrackX, y = sy, w = sTrackW, h = sh, min = min, max = max, isInt = isInt
         })
@@ -115,7 +113,7 @@ function TerrainEditor.draw(x, y, w, h)
     cy = cy + 40
     
     -- Status
-    local status = "Ready"
+    local status
     if Engine and Engine.Workspace and Engine.Workspace.Terrain then
         local t = Engine.Workspace.Terrain
         local count = 0
