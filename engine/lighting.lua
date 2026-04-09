@@ -114,6 +114,9 @@ local math_min = math.min
 -- Simple shadow propagation (top-down for now like early Roblox)
 function Lighting:Update(dt)
     -- 0. Update ClockTime
+    if self.TimeScale ~= 0 then
+        self.ClockTime = self.ClockTime + (dt * self.TimeScale) / 3600
+    end
     self:SetClockTime(self.ClockTime)
 
     -- Dynamic Sky Colors (Roblox 2008-ish)

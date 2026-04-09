@@ -464,5 +464,6 @@ function love.filedropped(file)
 end
 
 function love.quit()
+    require("studio.ui.script_editor").cleanup()
     MCP.stop()
 end

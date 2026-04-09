@@ -167,7 +167,7 @@ function Sky:draw()
         for _, star in ipairs(self.stars) do
             local sx, sy = projectPoint(star.x, star.y, star.z, w, h)
             if sx then
-                local twinkle = 0.7 + 0.3 * math_sin(timer * 3 + star.offset)
+                local twinkle = 0.8 + 0.2 * math_sin(timer * 1.5 + star.offset)
                 lg.setColor(1, 1, 1, starBaseAlpha * twinkle)
                 if star.size > 1.5 then
                     lg.rectangle("fill", sx - star.size/2, sy - star.size/2, star.size, star.size)

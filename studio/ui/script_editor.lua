@@ -313,40 +313,52 @@ local function drawLineHighlighted(text, x, y)
     end
 end
 
+function ScriptEditor.cleanup()
+    for _, watch in ipairs(ScriptEditor.watchedFiles) do
+        love.filesystem.remove(watch.filename)
+    end
+    ScriptEditor.watchedFiles = {}
+end
+
 function ScriptEditor.update(dt)
     -- Check watched files for external editor sync
     for i = #ScriptEditor.watchedFiles, 1, -1 do
         local watch = ScriptEditor.watchedFiles[i]
-        local info = love.filesystem.getInfo(watch.filename)
-        if info then
-            if info.modtime > watch.lastMod then
-                watch.lastMod = info.modtime
-                local f = io.open(watch.path, "r")
-                if f then
-                    local content = f:read("*a")
-                    f:close()
-                    watch.instance.Source = content
-                    -- Update open tab if exists
-                    for _, tab in ipairs(ScriptEditor.tabs) do
-                        if tab.instance == watch.instance then
-                            local lines = {}
-                            for line in (content .. "\n"):gmatch("(.-)\r?\n") do
-                                table.insert(lines, line)
+        if watch.instance and not watch.instance.Parent then
+            love.filesystem.remove(watch.filename)
+            table.remove(ScriptEditor.watchedFiles, i)
+        else
+            local info = love.filesystem.getInfo(watch.filename)
+            if info then
+                if info.modtime > watch.lastMod then
+                    watch.lastMod = info.modtime
+                    local f = io.open(watch.path, "r")
+                    if f then
+                        local content = f:read("*a")
+                        f:close()
+                        watch.instance.Source = content
+                        -- Update open tab if exists
+                        for _, tab in ipairs(ScriptEditor.tabs) do
+                            if tab.instance == watch.instance then
+                                local lines = {}
+                                for line in (content .. "\n"):gmatch("(.-)\r?\n") do
+                                    table.insert(lines, line)
+                                end
+                                if #lines == 0 then table.insert(lines, "") end
+                                tab.lines = lines
+                                tab.cursorY = math.min(tab.cursorY, #lines)
+                                tab.cursorX = math.min(tab.cursorX, #lines[tab.cursorY] + 1)
+                                if _G._Notifications then _G._Notifications.show("Synced changes from external editor", "info") end
+                                ScriptEditor.lint()
+                                break
                             end
-                            if #lines == 0 then table.insert(lines, "") end
-                            tab.lines = lines
-                            tab.cursorY = math.min(tab.cursorY, #lines)
-                            tab.cursorX = math.min(tab.cursorX, #lines[tab.cursorY] + 1)
-                            if _G._Notifications then _G._Notifications.show("Synced changes from external editor", "info") end
-                            ScriptEditor.lint()
-                            break
                         end
                     end
                 end
+            else
+                -- File deleted
+                table.remove(ScriptEditor.watchedFiles, i)
             end
-        else
-            -- File deleted
-            table.remove(ScriptEditor.watchedFiles, i)
         end
     end
 
