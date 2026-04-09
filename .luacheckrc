@@ -30,8 +30,10 @@ ignore = {
     "612", -- Ignore line contains trailing whitespace
     "111", -- Ignore setting non-standard global variable
     "113", -- Ignore accessing undefined variable (sometimes needed for dynamic globals)
-    "142", -- Ignore setting read-only global variable (e.g. print override)
-    "143", -- Ignore setting read-only field (e.g. love.draw)
+    "121", -- Ignore setting read-only global variable (e.g. print override)
+    "122", -- Ignore setting read-only field (e.g. love.draw)
+    "142", -- Ignore accessing undefined global variable
+    "143", -- Ignore accessing undefined field of a global variable
 }
 
 max_line_length = 300

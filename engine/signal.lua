@@ -11,24 +11,26 @@ function Signal.new()
 end
 
 function Signal:Connect(callback)
+    local signal = self
     local connection = {
         _callback = callback,
-        _signal = self,
+        _signal = signal,
         Connected = true,
     }
     
-    function connection:Disconnect()
-        if not self.Connected then return end
-        self.Connected = false
-        for i, _conn in ipairs(self._signal._connections) do
-            if _conn == self then
-                table.remove(self._signal._connections, i)
+    function connection.Disconnect(conn)
+        if not conn.Connected then return end
+        conn.Connected = false
+        local sig = conn._signal
+        for i, _conn in ipairs(sig._connections) do
+            if _conn == conn then
+                table.remove(sig._connections, i)
                 break
             end
         end
     end
     
-    table.insert(self._connections, connection)
+    table.insert(signal._connections, connection)
     return connection
 end
 

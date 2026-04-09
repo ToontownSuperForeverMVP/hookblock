@@ -48,7 +48,6 @@ local StartMenu = require("studio.start_menu")
 -- State
 local fpsTimer = 0
 local lightingTimer = 0
-local initialized = false
 local appState = "start"
 
 function love.load()
@@ -118,8 +117,6 @@ function love.load()
                 local SpawnLocation = require("engine.spawnlocation")
                 local Vector3 = require("engine.vector3")
                 local Color3 = require("engine.color3")
-                local Script = require("engine.script")
-                local Folder = require("engine.folder")
 
                 if not isNew then
                     -- Load from file
@@ -173,7 +170,6 @@ function love.load()
 
         Loading.init(tasks, function()
             appState = "studio"
-            initialized = true
             print("[Luvöxel] All systems initialized")
         end)
     end)
@@ -386,9 +382,7 @@ function love.keypressed(key, scancode, isrepeat)
     if key == "delete" or key == "backspace" then
         local Properties = require("studio.ui.properties")
         local Explorer = require("studio.ui.explorer")
-        if Properties.isEditing() or Explorer.searchFocused then
-            -- Fallthrough to StudioMain for text editing keys
-        else
+        if not (Properties.isEditing() or Explorer.searchFocused) then
             local sel = _G._UI and _G._UI.selectedInstance
             if sel and sel.Parent and sel.ClassName ~= "Workspace" and sel.ClassName ~= "DataModel" then
                 local parent = sel.Parent
@@ -429,7 +423,6 @@ function love.filedropped(file)
 
     local Part = require("engine.part")
     local Script = require("engine.script")
-    local Vector3 = require("engine.vector3")
 
     if ext == "obj" then
         -- Load as a new Part with this mesh

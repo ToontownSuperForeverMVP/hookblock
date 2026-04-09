@@ -65,7 +65,7 @@ function Loading.draw()
     -- Background (Unity/Roblox dark style)
     lg.clear(Theme.colors.bg_dark)
     
-    -- Draw a subtle gradient or pattern? 
+    -- Draw a subtle gradient or pattern?
     -- For now, just solid dark.
 
     -- Splash Logo

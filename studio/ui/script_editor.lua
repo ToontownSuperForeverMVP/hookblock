@@ -234,7 +234,7 @@ function ScriptEditor.lint()
                     local out = handle:read("*a")
                     handle:close()
                     for line in out:gmatch("(.-)\r?\n") do
-                        local lNum, col, msg = line:match("_lint_tmp%.lua:(%d+):(%d+): (.+)")
+                        local lNum, msg = line:match("_lint_tmp%.lua:(%d+):%d+: (.+)")
                         if lNum then
                             -- Only add if not already syntactically broken on that line
                             local exists = false
@@ -712,8 +712,8 @@ function ScriptEditor.keypressed(key)
         end
         if key == "/" or key == "q" then
             -- Toggle Block Comment
-            local sx, sy, ex, ey = getSelectionRange(tab)
-            if not sx then sy = tab.cursorY; ey = tab.cursorY end
+            local _, sy, _, ey = getSelectionRange(tab)
+            if not sy then sy = tab.cursorY; ey = tab.cursorY end
             for i = sy, ey do
                 local l = tab.lines[i]
                 if l:match("^%s*%-%-") then

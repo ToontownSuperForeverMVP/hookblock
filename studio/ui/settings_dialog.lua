@@ -105,7 +105,7 @@ function SettingsDialog.update(dt)
     
     if SettingsDialog.activeTab == "General" and SettingsDialog.draggingSlider and love.mouse.isDown(1) then
         local lg = love.graphics
-        local sw, sh = lg.getDimensions()
+        local sw = lg.getDimensions()
         local dx = math.floor((sw - SettingsDialog.width) / 2)
         local cx = dx + 20
         local sliderW = 150
