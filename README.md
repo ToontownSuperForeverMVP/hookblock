@@ -64,3 +64,5 @@ You must have **LÖVE 11.x** installed.
 
 ## 📜 License
 Licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.
+
+Keep in mind that this project is moreso a passion project, and will not be taken seriously. You are free to utilize this code or the engine for whatever you please!
