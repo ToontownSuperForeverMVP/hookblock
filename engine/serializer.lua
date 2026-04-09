@@ -202,7 +202,7 @@ function Serializer.serializeInstance(inst)
 end
 
 -- Generic property deserialization
-function Serializer.deserializeInstance(data, existingInst)
+function Serializer.deserializeInstance(data, existingInst, isRoot)
     -- Ensure classes are loaded
     require("engine.part")
     require("engine.spawnlocation")
@@ -218,12 +218,18 @@ function Serializer.deserializeInstance(data, existingInst)
 
     local inst = existingInst
     if not inst then
-        if data.ClassName == "DataModel" then
-            inst = Engine.Game
-        elseif Engine.Game and Engine.Game:FindFirstChild(data.Name) and (data.ClassName == "Workspace" or data.ClassName == "Lighting" or data.ClassName == "StarterGui") then
-            inst = Engine.Game:FindFirstChild(data.Name)
-        else
+        -- Don't automatically hook to Engine.Game/Workspace if we are doing a clean load
+        if not isRoot then
             inst = Instance.new(data.ClassName, data.Name)
+        else
+            -- For root loading, we might want to map to existing services
+            if data.ClassName == "DataModel" then
+                inst = Engine.Game
+            elseif Engine.Game and Engine.Game:FindFirstChild(data.Name) and (data.ClassName == "Workspace" or data.ClassName == "Lighting" or data.ClassName == "StarterGui") then
+                inst = Engine.Game:FindFirstChild(data.Name)
+            else
+                inst = Instance.new(data.ClassName, data.Name)
+            end
         end
     end
     
@@ -255,7 +261,7 @@ function Serializer.deserializeInstance(data, existingInst)
     -- Deserialize children
     if data.Children then
         for _, childData in ipairs(data.Children) do
-            local child = Serializer.deserializeInstance(childData)
+            local child = Serializer.deserializeInstance(childData, nil, false)
             if child then
                 child:setParent(inst)
             end
@@ -293,7 +299,10 @@ function Serializer.loadFromFile(filepath)
     local data = jsonDecode(content)
     if not data then return nil, "Parse error" end
 
-    return Serializer.deserializeInstance(data)
+    -- Create a detached tree first
+    local tempRoot = Instance.new(data.ClassName, data.Name)
+    Serializer.deserializeInstance(data, tempRoot, false)
+    return tempRoot
 end
 
 -- Expose JSON utilities

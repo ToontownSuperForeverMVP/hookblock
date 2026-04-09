@@ -12,34 +12,8 @@ local menus = {
         label = "File",
         items = {
             {label = "New",    key = "Ctrl+N", action = function()
-                -- Clear workspace and re-create default scene
-                local children = Engine.Workspace:GetChildren()
-                for i = #children, 1, -1 do
-                    children[i]:setParent(nil)
-                end
-                
-                -- Create default scene
-                local Part = require("engine.part")
-                local SpawnLocation = require("engine.spawnlocation")
-                local Vector3 = require("engine.vector3")
-                local Color3 = require("engine.color3")
-
-                local baseplate = Part.new("Baseplate")
-                baseplate.Size     = Vector3.new(100, 4, 100)
-                baseplate.Position = Vector3.new(0, -2, 0)
-                baseplate.Color    = Color3.new(0.3, 0.3, 0.3)
-                baseplate.Anchored = true
-                baseplate:setTexture("assets/grid.png")
-                baseplate:setParent(Engine.Workspace)
-
-                local spawn = SpawnLocation.new("SpawnLocation")
-                spawn.Position = Vector3.new(0, 0.5, 0)
-                spawn:setParent(Engine.Workspace)
-
-                if _G._UI then _G._UI.selectedInstance = nil end
-                if Engine.History then Engine.History:clear() end
-                if _G._Notifications then _G._Notifications.show("New scene created", "info") end
-                print("[Luvoxel] New scene created")
+                MenuBar.showNewDialog = true
+                MenuBar.newName = ""
             end},
             {label = "Open...", key = "Ctrl+O", action = function()
                 local Serializer = require("engine.serializer")
@@ -273,14 +247,14 @@ function MenuBar.load() end
 function MenuBar.update(dt) end
 
 function MenuBar.draw()
-    local w = love.graphics.getWidth()
+    local w, h = love.graphics.getDimensions()
     local mh = Theme.layout.menu_h
 
     -- Background
     Theme.drawRect(0, 0, w, mh, Theme.colors.bg_menubar)
     Theme.drawDivider(0, mh - 1, w, 1, false)
 
-    -- Studio Logo
+    -- ... existing logo and menus drawing ...
     if Theme.assets.logo_studio then
         Theme.setColor(Theme.colors.white)
         local logoS = mh - 4
@@ -357,9 +331,78 @@ function MenuBar.draw()
             iy = iy + rh
         end
     end
+
+    -- Draw New Project Dialog
+    if MenuBar.showNewDialog then
+        local dw, dh = 300, 120
+        local dx, dy = (w - dw)/2, (h - dh)/2
+        
+        Theme.drawRect(0, 0, w, h, {0, 0, 0, 0.5}) -- Dim background
+        Theme.drawRect(dx, dy, dw, dh, Theme.colors.bg_medium, 8)
+        Theme.drawBorder(dx, dy, dw, dh, Theme.colors.border, 2)
+        Theme.drawText("New Project Name:", dx + 20, dy + 20, Theme.colors.text_primary, Theme.fonts.normal)
+        
+        local ix, iy, iw, ih = dx + 20, dy + 45, dw - 40, 24
+        Theme.drawRect(ix, iy, iw, ih, Theme.colors.bg_dark, 4)
+        Theme.drawText(MenuBar.newName, ix + 8, iy + 4, Theme.colors.text_primary, Theme.fonts.normal)
+        
+        -- Cursor
+        if math.floor(os.clock()*2)%2 == 0 then
+            local tw = Theme.fonts.normal:getWidth(MenuBar.newName)
+            Theme.drawRect(ix + 8 + tw, iy + 4, 2, 16, Theme.colors.white)
+        end
+        
+        local okX, okY, okW, okH = dx + dw - 100, dy + dh - 40, 80, 24
+        local okHov = Theme.inRect(mx, my, okX, okY, okW, okH)
+        Theme.drawRect(okX, okY, okW, okH, okHov and Theme.colors.bg_hover or Theme.colors.bg_light, 4)
+        Theme.drawText("Create", okX + 15, okY + 4, Theme.colors.text_primary, Theme.fonts.normal)
+        
+        MenuBar._newOkBtn = {x=okX, y=okY, w=okW, h=okH}
+    end
 end
 
 function MenuBar.mousepressed(x, y, button)
+    if MenuBar.showNewDialog then
+        if MenuBar._newOkBtn and Theme.inRect(x, y, MenuBar._newOkBtn.x, MenuBar._newOkBtn.y, MenuBar._newOkBtn.w, MenuBar._newOkBtn.h) then
+            if #MenuBar.newName > 0 then
+                local name = MenuBar.newName
+                MenuBar.showNewDialog = false
+                
+                -- Perform New Scene Action
+                local children = Engine.Workspace:GetChildren()
+                for i = #children, 1, -1 do children[i]:setParent(nil) end
+                
+                local Part = require("engine.part")
+                local SpawnLocation = require("engine.spawnlocation")
+                local Vector3 = require("engine.vector3")
+                local Color3 = require("engine.color3")
+
+                local baseplate = Part.new("Baseplate")
+                baseplate.Size     = Vector3.new(100, 4, 100)
+                baseplate.Position = Vector3.new(0, -2, 0)
+                baseplate.Color    = Color3.new(0.3, 0.3, 0.3)
+                baseplate.Anchored = true
+                baseplate.Locked   = true
+                baseplate:setTexture("assets/grid.png")
+                baseplate:setParent(Engine.Workspace)
+
+                local spawn = SpawnLocation.new("SpawnLocation")
+                spawn.Position = Vector3.new(0, 0.5, 0)
+                spawn:setParent(Engine.Workspace)
+
+                Engine.CurrentProject = name
+                if _G._UI then _G._UI.selectedInstance = nil end
+                if Engine.History then Engine.History:clear() end
+                if _G._Notifications then _G._Notifications.show("Project '" .. name .. "' created", "info") end
+            end
+            return true
+        end
+        if not Theme.inRect(x, y, (love.graphics.getWidth()-300)/2, (love.graphics.getHeight()-120)/2, 300, 120) then
+            MenuBar.showNewDialog = false
+        end
+        return true
+    end
+
     local mh = Theme.layout.menu_h
 
     if y >= 0 and y <= mh then
@@ -393,5 +436,31 @@ end
 
 function MenuBar.mousereleased(x, y, button) end
 function MenuBar.mousemoved(x, y, dx, dy) end
+
+function MenuBar.keypressed(key)
+    if MenuBar.showNewDialog then
+        if key == "backspace" then
+            local utf8 = require("utf8")
+            local byteoffset = utf8.offset(MenuBar.newName, -1)
+            if byteoffset then MenuBar.newName = string.sub(MenuBar.newName, 1, byteoffset - 1) end
+        elseif key == "return" then
+            -- Logic already in Create button, but could trigger here too
+        elseif key == "escape" then
+            MenuBar.showNewDialog = false
+        end
+        return true
+    end
+    return false
+end
+
+function MenuBar.textinput(t)
+    if MenuBar.showNewDialog then
+        if t:match("[%w%s%-_]") then
+            MenuBar.newName = MenuBar.newName .. t
+        end
+        return true
+    end
+    return false
+end
 
 return MenuBar

@@ -102,7 +102,6 @@ function Part:render()
             local tx, ty, tz = cam.target[1], cam.target[2], cam.target[3]
             local fx, fy, fz = tx - cpos[1], ty - cpos[2], tz - cpos[3]
             
-            -- Normalize forward vector for consistent dot product (projection distance along look vector)
             local flen = math.sqrt(fx*fx + fy*fy + fz*fz)
             if flen > 0 then
                 fx, fy, fz = fx/flen, fy/flen, fz/flen
@@ -110,14 +109,11 @@ function Part:render()
             
             local dot = dx*fx + dy*fy + dz*fz
             
-            -- Cull margin based on size to prevent large parts (baseplate) disappearing
             local size = self.Size
             local maxDim = math.max(size.x, size.y, size.z)
-            -- Use a buffer based on the part's maximum dimension to ensure it's not culled while still partially visible
-            -- 0.866 is approx half the diagonal of a cube (sqrt(3)/2)
-            local cullMargin = -(maxDim * 0.9 + 5)
+            -- Increased margin to 1.5x max dimension + buffer
+            local cullMargin = -(maxDim * 1.5 + 10)
             
-            -- Only render if in front of camera (with a buffer for large parts)
             if dot > cullMargin then 
                 -- Set transformation on the SHARED model
                 local rot = self.Rotation

@@ -232,7 +232,7 @@ function love.update(dt)
     fpsTimer = fpsTimer + dt
     if fpsTimer >= 1.0 then
         local mem = collectgarbage("count")/1024
-        love.window.setTitle(string.format("Luvöxel Studio - FPS: %d - MEM: %.1fMB",
+        love.window.setTitle(string.format("Luvöxel Studio [v0.0.2-patch] - FPS: %d - MEM: %.1fMB",
             lt.getFPS(), mem))
         fpsTimer = 0
 

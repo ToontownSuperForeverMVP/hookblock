@@ -612,11 +612,14 @@ end
 function UI.mousereleased(x, y, button)
     ColorPicker.mousereleased(x, y, button)
     if UI.activeTab == "Script" then ScriptEditor.mousereleased(x, y, button) end
+    Properties.mousereleased(x, y, button)
+    Explorer.mousereleased(x, y, button)
 end
 
 function UI.mousemoved(x, y, dx, dy)
     ColorPicker.mousemoved(x, y, dx, dy)
     if UI.activeTab == "Script" then ScriptEditor.mousemoved(x, y, dx, dy) end
+    Properties.mousemoved(x, y, dx, dy)
 end
 
 function UI.wheelmoved(x, y)
