@@ -114,6 +114,22 @@ local CONTEXT_ITEMS = {
             end
         end
     },
+    {label = "Open in External Editor",
+        action = function(inst)
+            if inst and (inst.ClassName == "Script" or inst.ClassName == "ModuleScript") then
+                local SettingsDialog = require("studio.ui.settings_dialog")
+                local ext = SettingsDialog.settings.externalEditor
+                if ext and ext ~= "" then
+                    local ScriptEditor = require("studio.ui.script_editor")
+                    ScriptEditor.openInExternalEditor(inst, ext)
+                else
+                    if _G._Notifications then _G._Notifications.show("External editor not configured in Settings", "error") end
+                end
+            elseif _G._Notifications then
+                _G._Notifications.show("Only scripts can be opened in external editor", "error")
+            end
+        end
+    },
     {label = "Delete",
         action = function(inst)
             if inst and inst.Parent and inst.ClassName ~= "Workspace" and inst.ClassName ~= "DataModel" then
