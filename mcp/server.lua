@@ -151,16 +151,25 @@ local LOG_SIZE = 200
 local logBuffer = {}
 local logIndex  = 0
 local _origPrint = print
+local _inMcpPrint = false
 
 local function mcpPrint(...)
+    if _inMcpPrint then return _origPrint(...) end
+    _inMcpPrint = true
+    
     local parts = {}
     for i = 1, select('#', ...) do
         parts[i] = tostring(select(i, ...))
     end
     local line = table.concat(parts, "\t")
-    _origPrint(...)  -- still go to console
+    
+    -- Call the current global print (which might be overridden by the Output UI)
+    print(...)
+    
     logIndex = logIndex + 1
     logBuffer[((logIndex-1) % LOG_SIZE) + 1] = {ts = os.time(), msg = line}
+    
+    _inMcpPrint = false
 end
 
 function MCP.getLogs(n)

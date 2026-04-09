@@ -29,6 +29,7 @@ UI.selectedInstance = nil
 UI.activeTab = "Viewport" -- "Viewport" or "Script"
 UI.activeBottomTab = "Output" -- "Output", "Assets", "Animation"
 UI.activeRightTab = "Properties" -- "Properties", "Terrain"
+UI.Output = Output
 _G._UI = UI
 _G._Notifications = Notifications
 

@@ -21,21 +21,35 @@ function print(...)
     table.insert(Output.messages, {text = msg, level = "info", time = os.clock()})
     -- Keep last 500 messages
     if #Output.messages > 500 then table.remove(Output.messages, 1) end
-    -- Auto-scroll
-    Output.scrollY = -math.huge
+    -- Auto-scroll if at bottom
+    if Output.atBottom then
+        Output.scrollY = -math.huge
+    end
+end
+
+-- Compatibility for ScriptRuntime
+function Output.log(msg)
+    table.insert(Output.messages, {text = msg, level = "info", time = os.clock()})
+    if #Output.messages > 500 then table.remove(Output.messages, 1) end
+    if Output.atBottom then Output.scrollY = -math.huge end
 end
 
 function Output.warn(msg)
     _origPrint("[WARN] " .. msg)
     table.insert(Output.messages, {text = msg, level = "warn", time = os.clock()})
+    if #Output.messages > 500 then table.remove(Output.messages, 1) end
+    if Output.atBottom then Output.scrollY = -math.huge end
 end
 
 function Output.error(msg)
     _origPrint("[ERROR] " .. msg)
     table.insert(Output.messages, {text = msg, level = "error", time = os.clock()})
+    if #Output.messages > 500 then table.remove(Output.messages, 1) end
+    if Output.atBottom then Output.scrollY = -math.huge end
 end
 
 function Output.load()
+    Output.atBottom = true
     print("[Luvoxel] Studio loaded — welcome!")
 end
 
@@ -70,23 +84,31 @@ function Output.draw(panelX, panelY, panelW, panelH)
 
     local rh = 18
     local totalRows = #Output.messages
-    local maxScrollY = -math.max(0, totalRows * rh - contentH)
+    local totalContentH = totalRows * rh
+    
+    local maxScrollY = -math.max(0, totalContentH - (contentH - 4))
+    if Output.scrollY == -math.huge then
+        Output.scrollY = maxScrollY
+        Output.atBottom = true
+    end
+    
     Output.scrollY = math.max(maxScrollY, math.min(0, Output.scrollY))
+    -- Update atBottom flag for next print
+    Output.atBottom = (Output.scrollY <= maxScrollY + 2)
 
-    local yOff = panelY + ah + 2
-    local visStart = math.max(1, totalRows - math.floor(contentH / rh) - 1)
-    for i = visStart, totalRows do
-        local msg = Output.messages[i]
-        local color = msg.level == "error" and Theme.colors.text_error
-                   or msg.level == "warn"  and Theme.colors.text_warn
-                   or Theme.colors.text_primary
+    local yBase = panelY + ah + 2 + Output.scrollY
+    for i = 1, totalRows do
+        local ly = yBase + (i-1) * rh
+        if ly + rh > panelY + ah and ly < panelY + panelH then
+            local msg = Output.messages[i]
+            local color = msg.level == "error" and Theme.colors.text_error
+                       or msg.level == "warn"  and Theme.colors.text_warn
+                       or Theme.colors.text_primary
 
-        if yOff > panelY + panelH then break end
-
-        love.graphics.setFont(Theme.fonts.mono)
-        Theme.setColor(color)
-        love.graphics.print(msg.text, panelX + 6, yOff)
-        yOff = yOff + rh
+            love.graphics.setFont(Theme.fonts.mono)
+            Theme.setColor(color)
+            love.graphics.print(msg.text, panelX + 6, ly)
+        end
     end
 
     love.graphics.setScissor()
