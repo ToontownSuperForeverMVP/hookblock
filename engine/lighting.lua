@@ -24,6 +24,7 @@ function Lighting.new()
     self.ShadowColor = Color3.new(0.3, 0.3, 0.3)
     self.ClockTime = 14 -- 2 PM
     self.TimeOfDay = "14:00:00"
+    self.TimeScale = 1.0 -- NEW: Speed of day/night cycle (1.0 = 1s per hour, 3600s = 1h real time = 1h in game)
     self.LightingShift = true -- NEW: Toggle for auto-adjusting ambient/brightness
     
     -- Clouds
@@ -114,8 +115,9 @@ local math_min = math.min
 -- Simple shadow propagation (top-down for now like early Roblox)
 function Lighting:Update(dt)
     -- 0. Update ClockTime
-    if self.TimeScale ~= 0 then
-        self.ClockTime = self.ClockTime + (dt * self.TimeScale) / 3600
+    local timeScale = self.TimeScale or 0
+    if timeScale ~= 0 then
+        self.ClockTime = self.ClockTime + (dt * timeScale) / 3600
     end
     self:SetClockTime(self.ClockTime)
 
