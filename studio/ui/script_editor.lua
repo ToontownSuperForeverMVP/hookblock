@@ -6,6 +6,10 @@ local utf8  = require("utf8")
 
 local ScriptEditor = {}
 
+-- System Cursors
+local ibeamCursor = love.mouse.getSystemCursor("ibeam")
+local arrowCursor = love.mouse.getSystemCursor("arrow")
+
 ScriptEditor.visible = false
 ScriptEditor.x = 80
 ScriptEditor.y = 80
@@ -217,6 +221,8 @@ function ScriptEditor.lint()
     end
 
     -- Run luacheck.exe if available (advanced active linting)
+    -- Disabled for now to prevent terminal window flickering on Windows
+    --[[
     if love.system.getOS() == "Windows" then
         local cwd = love.filesystem.getWorkingDirectory() or "."
         local luacheckPath = cwd .. "\\luacheck.exe"
@@ -251,6 +257,7 @@ function ScriptEditor.lint()
             end
         end
     end
+    ]]
 end
 
 function ScriptEditor.save()
@@ -384,6 +391,9 @@ function ScriptEditor.draw()
     if not ScriptEditor.visible or #ScriptEditor.tabs == 0 then return end
     local tab = ScriptEditor.tabs[ScriptEditor.activeTab]
     local px, py, pw, ph = ScriptEditor.x, ScriptEditor.y, ScriptEditor.width, ScriptEditor.height
+
+    local mx, my = love.mouse.getPosition()
+    local overEditor = Theme.inRect(mx, my, px, py, pw, ph)
 
     -- Background (Integrated)
     Theme.drawRect(px, py, pw, ph, COLORS.bg)
@@ -534,6 +544,18 @@ function ScriptEditor.draw()
         local sbH = math.max(20, editorH * ratio)
         local sbY = editorY + (-tab.scrollY / totalH) * editorH
         Theme.drawRect(px + pw - 6, sbY, 4, sbH, Theme.colors.bg_hover, 2)
+    end
+
+    -- Update cursor
+    if overEditor then
+        local editorY = py + hh + th + fBannerH
+        local editorH = ph - hh - th - fBannerH
+        local lineNumW = 45
+        if Theme.inRect(mx, my, px + lineNumW, editorY, pw - lineNumW, editorH) then
+            love.mouse.setCursor(ibeamCursor)
+        else
+            love.mouse.setCursor(arrowCursor)
+        end
     end
 end
 

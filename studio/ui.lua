@@ -164,6 +164,9 @@ function UI.load()
 end
 
 function UI.update(dt)
+    -- Reset cursor (sub-modules like ScriptEditor will set specific cursors if needed)
+    love.mouse.setCursor(love.mouse.getSystemCursor("arrow"))
+
     -- Check if window size changed
     local W, H = lg.getDimensions()
     if W ~= (cachedLayout.W or 0) or H ~= (cachedLayout.H or 0) then
