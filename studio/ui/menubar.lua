@@ -204,7 +204,7 @@ local menus = {
         items = {
             {label = "About Luvöxel", action = function()
                 AboutDialog.open()
-                print("[Luvöxel] Luvöxel Studio v0.0.1-dev")
+                print("[Luvöxel] Luvöxel Studio v0.0.0-interim")
                 print("[Luvöxel] (Internal: HookBlock)")
                 print("[Luvöxel] FOSS Roblox Studio Alternative")
                 print("[Luvöxel] Built with Love2D + G3D")

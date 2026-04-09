@@ -110,7 +110,7 @@ function Loading.draw()
     lg.arc("line", "open", spinX, spinY, spinR, spinnerAngle, spinnerAngle + math.pi * 1.5)
     
     -- Version (Bottom-Right)
-    local version = "v0.0.1-dev"
+    local version = "v0.0.0-interim"
     local vw = Theme.fonts.small:getWidth(version)
     Theme.drawText(version, W - vw - 20, H - 30, Theme.colors.text_disabled, Theme.fonts.small)
 

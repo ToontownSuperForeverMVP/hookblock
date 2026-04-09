@@ -87,7 +87,7 @@ function AboutDialog.draw()
     end
 
     lg.setFont(Theme.fonts.normal)
-    centeredText("v0.0.1-dev", cy)
+    centeredText("v0.0.0-interim", cy)
     cy = cy + 25
 
     centeredText("Created by ToontownSuper", cy, Theme.colors.text_accent)
