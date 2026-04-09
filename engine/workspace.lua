@@ -1,5 +1,6 @@
 -- engine/workspace.lua
 local Instance = require("engine.instance")
+local Physics = require("engine.physics")
 
 local Workspace = setmetatable({}, {__index = Instance})
 Workspace.ClassName = "Workspace"
@@ -10,6 +11,10 @@ function Workspace.new()
     local self = setmetatable({}, Workspace)
     self:init("Workspace", "Workspace")
     
+    -- Physics Service (Internal to Workspace)
+    self.Physics = Physics.new()
+    
+    -- Terrain
     local Terrain = require("engine.terrain")
     self.Terrain = Terrain.new("Terrain")
     self.Terrain:setParent(self)

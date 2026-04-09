@@ -14,6 +14,9 @@ function Game.new()
     local self = setmetatable({}, Game)
     self:init("DataModel", "game")
     
+    -- Clear services cache for the new instance
+    for k in pairs(services) do services[k] = nil end
+    
     -- Root globals for easy access
     _G.game = self
     

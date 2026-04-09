@@ -19,9 +19,16 @@ function InstanceMeta.__index(t, k)
     end
 
     -- 2. Check properties/methods of the instance's class (metatable)
+    -- Since the instance's metatable IS the class (e.g. Workspace),
+    -- we can just look there.
     local cls = getmetatable(t)
-    local v = cls[k]
-    if v ~= nil then return v end
+    if cls then
+        -- We must use rawget on the class to avoid infinite recursion
+        -- if the class also has an __index function.
+        -- Actually, classes are set up with __index = class, so we can just index them.
+        local v = cls[k]
+        if v ~= nil then return v end
+    end
     
     -- 3. Fallback to children lookup by name
     local children = rawget(t, "_children")
@@ -71,6 +78,12 @@ function InstanceMeta.__newindex(t, k, v)
     end
 
     local props = rawget(t, "_properties")
+    if not props then
+        -- Fallback for extremely early initialization
+        rawset(t, k, v)
+        return
+    end
+
     local old = props[k]
     props[k] = v
     
@@ -88,17 +101,17 @@ function InstanceMeta.__newindex(t, k, v)
     end
 end
 
-Instance.__index = InstanceMeta.__index
-Instance.__newindex = InstanceMeta.__newindex
+-- Expose meta methods so subclasses can use them
+Instance.metatable = InstanceMeta
 
 -- Class registry for Instance.new and Clone
 local registry = {}
 
 function Instance.register(className, classTable)
     registry[className] = classTable
-    -- Ensure class table uses our meta methods if it doesn't already
-    if not classTable.__index then classTable.__index = classTable end
-    -- We don't set __newindex on the class table itself, but on the instances
+    -- Subclasses MUST use InstanceMeta
+    classTable.__index = InstanceMeta.__index
+    classTable.__newindex = InstanceMeta.__newindex
 end
 
 function Instance.new(className, name)
@@ -123,14 +136,11 @@ function Instance:init(className, name)
     rawset(self, "_children", {})
     rawset(self, "_destroyed", false)
     rawset(self, "_propertySignals", {})
-    rawset(self, "Parent", nil) -- Note: setParent uses rawget/set
+    -- DO NOT rawset Parent here, so it's always handled via __index/__newindex
     
     -- Signals
     self.Changed = Signal.new()
 end
-
--- ... rest of methods ...
--- I will keep the rest of the file content but ensures it uses the new structure.
 
 function Instance:GetPropertyChangedSignal(property)
     local signals = rawget(self, "_propertySignals")
@@ -141,19 +151,17 @@ function Instance:GetPropertyChangedSignal(property)
 end
 
 function Instance:GetChildren()
-    return rawget(self, "_children")
+    return rawget(self, "_children") or {}
 end
 
 function Instance:GetDescendants()
     local desc = {}
     local function collect(inst)
-        local children = rawget(inst, "_children")
-        if children then
-            for i=1, #children do
-                local child = children[i]
-                table.insert(desc, child)
-                collect(child)
-            end
+        local children = inst:GetChildren()
+        for i=1, #children do
+            local child = children[i]
+            table.insert(desc, child)
+            collect(child)
         end
     end
     collect(self)
@@ -162,6 +170,7 @@ end
 
 function Instance:FindFirstChild(name)
     local children = rawget(self, "_children")
+    if not children then return nil end
     for _, child in ipairs(children) do
         if child.Name == name then
             return child
@@ -172,6 +181,7 @@ end
 
 function Instance:FindFirstChildOfClass(className)
     local children = rawget(self, "_children")
+    if not children then return nil end
     for _, child in ipairs(children) do
         if child.ClassName == className then
             return child
@@ -182,6 +192,7 @@ end
 
 function Instance:FindFirstChildWhichIsA(className)
     local children = rawget(self, "_children")
+    if not children then return nil end
     for _, child in ipairs(children) do
         if child:IsA(className) then
             return child
@@ -194,12 +205,17 @@ function Instance:IsA(className)
     if className == "Instance" then return true end
     if self.ClassName == className then return true end
     
+    -- Walk up the metatable chain
     local mt = getmetatable(self)
     while mt do
-        if mt.ClassName == className then return true end
-        local superMt = getmetatable(mt)
-        if superMt and superMt.__index then
-            mt = superMt.__index
+        -- Classes are set up with Instance as their metatable's __index
+        -- So we check ClassName on the mt itself (which is the class table)
+        if rawget(mt, "ClassName") == className then return true end
+        
+        -- Get the metatable of the current class table to find its parent class
+        local nextMt = getmetatable(mt)
+        if nextMt and nextMt.__index then
+            mt = nextMt.__index
         else
             break
         end
@@ -209,7 +225,7 @@ end
 
 function Instance:setParent(newParent)
     if rawget(self, "_destroyed") then return end
-    local currentParent = rawget(self, "Parent")
+    local currentParent = rawget(self, "_parent")
     if newParent == currentParent then return end
     if newParent == self then return end
 
@@ -224,19 +240,23 @@ function Instance:setParent(newParent)
 
     if currentParent then
         local children = rawget(currentParent, "_children")
-        for i, child in ipairs(children) do
-            if child == self then
-                table.remove(children, i)
-                break
+        if children then
+            for i, child in ipairs(children) do
+                if child == self then
+                    table.remove(children, i)
+                    break
+                end
             end
         end
     end
     
-    rawset(self, "Parent", newParent)
+    rawset(self, "_parent", newParent)
     
     if newParent then
         local children = rawget(newParent, "_children")
-        table.insert(children, self)
+        if children then
+            table.insert(children, self)
+        end
     end
     
     if self.Changed then
@@ -244,11 +264,56 @@ function Instance:setParent(newParent)
     end
 end
 
+-- Add Parent getter to __index logic
+function InstanceMeta.__index(t, k)
+    if k == "Parent" then
+        return rawget(t, "_parent")
+    end
+
+    -- 1. Check hidden properties first
+    local props = rawget(t, "_properties")
+    if props and props[k] ~= nil then
+        return props[k]
+    end
+
+    -- 2. Check methods/class fields
+    local cls = getmetatable(t)
+    if cls then
+        -- Find method in the metatable hierarchy
+        -- Since subclasses use InstanceMeta.__index, we must avoid recursion
+        -- We look in the actual table of the class
+        local v = rawget(cls, k)
+        if v ~= nil then return v end
+        
+        -- If not in class, check parent class (Instance)
+        -- This is a bit tricky with this structure.
+        -- Let's just look in Instance table too as fallback.
+        v = Instance[k]
+        if v ~= nil then return v end
+    end
+    
+    -- 3. Fallback to children lookup by name
+    local children = rawget(t, "_children")
+    if children then
+        for _, child in ipairs(children) do
+            if child.Name == k then
+                return child
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- Re-assign fixed __index
+Instance.__index = InstanceMeta.__index
+Instance.__newindex = InstanceMeta.__newindex
+
 function Instance:Destroy()
     if rawget(self, "_destroyed") then return end
     rawset(self, "_destroyed", true)
     
-    local children = rawget(self, "_children")
+    local children = self:GetChildren()
     for i = #children, 1, -1 do
         children[i]:Destroy()
     end
@@ -293,7 +358,7 @@ function Instance:Clone()
         end
     end
     
-    local children = rawget(self, "_children")
+    local children = self:GetChildren()
     for _, child in ipairs(children) do
         local childClone = child:Clone()
         childClone.Parent = clone
@@ -303,12 +368,10 @@ function Instance:Clone()
 end
 
 function Instance:render()
-    local children = rawget(self, "_children")
-    if children then
-        for _, child in ipairs(children) do
-            if child.render then
-                child:render()
-            end
+    local children = self:GetChildren()
+    for _, child in ipairs(children) do
+        if child.render then
+            child:render()
         end
     end
 end
