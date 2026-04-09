@@ -47,6 +47,10 @@ local menus = {
                 Serializer.saveToFile(Engine.Workspace, "save.json")
                 if _G._Notifications then _G._Notifications.show("Scene saved to save.json", "info") end
             end},
+            {label = "Settings", key = "Ctrl+,", action = function()
+                local SettingsDialog = require("studio.ui.settings_dialog")
+                SettingsDialog.open()
+            end},
             {label = "---"},
             {label = "Quit",   key = "Alt+F4", action = function() love.event.quit() end},
         }

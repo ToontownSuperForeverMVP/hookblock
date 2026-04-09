@@ -16,6 +16,7 @@ local ScriptEditor    = require("studio.ui.script_editor")
 local StatusBar       = require("studio.ui.status_bar")
 local Notifications   = require("studio.ui.notifications")
 local AboutDialog     = require("studio.ui.about_dialog")
+local SettingsDialog  = require("studio.ui.settings_dialog")
 
 local UI = {}
 
@@ -218,6 +219,7 @@ function UI.update(dt)
     AnimationEditor.update(dt)
     TerrainEditor.update(dt)
     StatusBar.update(dt)
+    if SettingsDialog.update then SettingsDialog.update(dt) end
     Notifications.update(dt)
 end
 
@@ -422,6 +424,7 @@ function UI.draw()
     MenuBar.draw()
     ColorPicker.draw()
     AboutDialog.draw()
+    SettingsDialog.draw()
     Notifications.draw()
 end
 
@@ -442,6 +445,7 @@ end
 function UI.mousepressed(x, y, button, istouch, presses)
     if ColorPicker.visible and ColorPicker.mousepressed(x, y, button) then return true end
     if AboutDialog.visible and AboutDialog.mousepressed(x, y, button) then return true end
+    if SettingsDialog.visible and SettingsDialog.mousepressed(x, y, button) then return true end
 
     local lay = UI.getLayout()
 
