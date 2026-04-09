@@ -9,6 +9,11 @@ Workspace.__newindex = Instance.__newindex
 function Workspace.new()
     local self = setmetatable({}, Workspace)
     self:init("Workspace", "Workspace")
+    
+    local Terrain = require("engine.terrain")
+    self.Terrain = Terrain.new("Terrain")
+    self.Terrain:setParent(self)
+    
     return self
 end
 
