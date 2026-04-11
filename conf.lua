@@ -17,7 +17,4 @@ function love.conf(t)
 
     -- Better color accuracy on modern displays
     t.gammacorrect = true
-
-    -- MCP server needs luasocket
-    t.modules.socket = true
 end

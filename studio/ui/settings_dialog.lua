@@ -14,7 +14,6 @@ SettingsDialog.settings = {
     showGrid = true,
     showFPS = true,
     cameraSpeed = 50,
-    mcpEnabled = false,
 }
 
 _G._StudioSettings = SettingsDialog.settings
@@ -25,79 +24,6 @@ end
 
 function SettingsDialog.close()
     SettingsDialog.visible = false
-end
-
-function SettingsDialog.autoConfigureMCP()
-    local osName = love.system.getOS()
-    local home = os.getenv("HOME") or os.getenv("USERPROFILE")
-    local appdata = os.getenv("APPDATA")
-    
-    local paths = {}
-    if osName == "Windows" then
-        paths.claude = appdata and (appdata .. "\\Claude\\claude_desktop_config.json")
-        paths.gemini = home and (home .. "\\.gemini\\mcp.json")
-        paths.cursor = appdata and (appdata .. "\\Cursor\\User\\globalStorage\\mcp.json")
-        paths.opencode = appdata and (appdata .. "\\OpenCode\\mcp.json")
-        paths.openclaw = appdata and (appdata .. "\\OpenClaw\\mcp.json")
-    elseif osName == "OS X" then
-        paths.claude = home and (home .. "/Library/Application Support/Claude/claude_desktop_config.json")
-        paths.gemini = home and (home .. "/.gemini/mcp.json")
-        paths.cursor = home and (home .. "/Library/Application Support/Cursor/User/globalStorage/mcp.json")
-        paths.opencode = home and (home .. "/Library/Application Support/OpenCode/mcp.json")
-        paths.openclaw = home and (home .. "/Library/Application Support/OpenClaw/mcp.json")
-    else
-        -- Linux
-        paths.claude = home and (home .. "/.config/Claude/claude_desktop_config.json")
-        paths.gemini = home and (home .. "/.gemini/mcp.json")
-        paths.cursor = home and (home .. "/.config/Cursor/User/globalStorage/mcp.json")
-        paths.opencode = home and (home .. "/.config/OpenCode/mcp.json")
-        paths.openclaw = home and (home .. "/.config/OpenClaw/mcp.json")
-    end
-    
-    local cwd = love.filesystem.getWorkingDirectory() or "."
-    local bridgePath = cwd .. (osName == "Windows" and "\\mcp-bridge.js" or "/mcp-bridge.js")
-    
-    local function injectMCP(path)
-        if not path then return false end
-        
-        local scriptPath = cwd .. (osName == "Windows" and "\\_auto_mcp.js" or "/_auto_mcp.js")
-        local sf = io.open(scriptPath, "w")
-        if sf then
-            sf:write([[
-const fs = require('fs');
-const path = process.argv[2];
-const bridgePath = process.argv[3];
-if(!path) process.exit(0);
-let data = {};
-if(fs.existsSync(path)) {
-    try { data = JSON.parse(fs.readFileSync(path, 'utf8')); } catch(e) {}
-}
-if(!data.mcpServers) data.mcpServers = {};
-data.mcpServers['LuvoxelStudio'] = {
-    command: 'node',
-    args: [bridgePath]
-};
-const dir = require('path').dirname(path);
-if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
-fs.writeFileSync(path, JSON.stringify(data, null, 2));
-            ]])
-            sf:close()
-            local cmd = 'node "' .. scriptPath .. '" "' .. path .. '" "' .. bridgePath:gsub("\\", "\\\\") .. '"'
-            os.execute(cmd)
-            os.remove(scriptPath)
-            return true
-        end
-        return false
-    end
-    
-    local count = 0
-    for name, path in pairs(paths) do
-        if injectMCP(path) then count = count + 1 end
-    end
-    
-    if _G._Notifications then
-        _G._Notifications.show("MCP Auto-Configured for " .. count .. " AI tools", "info")
-    end
 end
 
 function SettingsDialog.update(dt)
@@ -172,7 +98,7 @@ function SettingsDialog.draw()
     Theme.drawRect(dx, tabY, dw, tabH, Theme.colors.bg_medium)
     Theme.drawDivider(dx, tabY + tabH - 1, dw, 1)
 
-    local tabs = {"General", "Editor", "MCP"}
+    local tabs = {"General"}
     local tx = dx + 10
     for _, tab in ipairs(tabs) do
         local tw = Theme.fonts.small:getWidth(tab) + 20
@@ -222,26 +148,6 @@ function SettingsDialog.draw()
         Theme.drawRect(sliderX, cy + 8, sliderW * progress, 4, Theme.colors.text_accent, 2)
         Theme.drawRect(sliderX + sliderW * progress - 4, cy + 2, 8, 16, Theme.colors.text_primary, 4)
         Theme.drawText(string.format("%.1f", speed), sliderX + sliderW + 10, cy, Theme.colors.text_secondary, Theme.fonts.small)
-    
-    elseif SettingsDialog.activeTab == "MCP" then
-        -- MCP Toggle
-        Theme.drawText("Enable MCP Server", cx, cy, Theme.colors.text_primary)
-        Theme.drawRect(cx + 140, cy, 40, 20, SettingsDialog.settings.mcpEnabled and Theme.colors.btn_active or Theme.colors.bg_medium, 4)
-        Theme.drawText(SettingsDialog.settings.mcpEnabled and "ON" or "OFF", cx + 148, cy + 2, Theme.colors.text_primary, Theme.fonts.small)
-        cy = cy + 35
-        
-        lg.setFont(Theme.fonts.small)
-        Theme.setColor(Theme.colors.text_secondary)
-        lg.printf("Model Context Protocol allows AI assistants (like Claude, Cursor, Gemini CLI) to interact with your Studio environment directly.", cx, cy, dw - 40, "left")
-        cy = cy + 50
-        
-        -- Auto Configure Button
-        local btnW = 180
-        local btnH = 28
-        local isBtnHover = Theme.inRect(mx, my, cx, cy, btnW, btnH)
-        Theme.drawRect(cx, cy, btnW, btnH, isBtnHover and Theme.colors.btn_hover or Theme.colors.btn_normal, 4)
-        Theme.drawBorder(cx, cy, btnW, btnH, Theme.colors.border, 1)
-        Theme.drawText("Auto-Configure AI Tools", cx + 20, cy + 6, Theme.colors.text_primary, Theme.fonts.small)
     end
     
     -- About text at the bottom
@@ -272,7 +178,7 @@ function SettingsDialog.mousepressed(x, y, button)
     local tabH = 24
     if y >= tabY and y <= tabY + tabH then
         local tx = dx + 10
-        local tabs = {"General", "MCP"}
+        local tabs = {"General"}
         for _, tab in ipairs(tabs) do
             local tw = Theme.fonts.small:getWidth(tab) + 20
             if Theme.inRect(x, y, tx, tabY, tw, tabH) then
@@ -308,27 +214,6 @@ function SettingsDialog.mousepressed(x, y, button)
             SettingsDialog.draggingSlider = true
             return true
         end
-    elseif SettingsDialog.activeTab == "Editor" then
-        if Theme.inRect(x, y, cx + 140, cy - 4, 260, 24) then
-            SettingsDialog.editingExternalEditor = true
-            return true
-        end
-        SettingsDialog.editingExternalEditor = false
-    elseif SettingsDialog.activeTab == "MCP" then
-        -- MCP Toggle
-        if Theme.inRect(x, y, cx + 140, cy, 40, 20) then
-            SettingsDialog.settings.mcpEnabled = not SettingsDialog.settings.mcpEnabled
-            return true
-        end
-        cy = cy + 35 + 50
-        
-        -- Auto Configure Button
-        local btnW = 180
-        local btnH = 28
-        if Theme.inRect(x, y, cx, cy, btnW, btnH) then
-            SettingsDialog.autoConfigureMCP()
-            return true
-        end
     end
 
     -- Clicks outside dialog close it
@@ -342,29 +227,11 @@ end
 
 function SettingsDialog.keypressed(key)
     if not SettingsDialog.visible then return false end
-    if SettingsDialog.editingExternalEditor then
-        if key == "backspace" then
-            local utf8 = require("utf8")
-            local str = SettingsDialog.settings.externalEditor
-            local byteoffset = utf8.offset(str, -1)
-            if byteoffset then
-                SettingsDialog.settings.externalEditor = str:sub(1, byteoffset - 1)
-            end
-            return true
-        elseif key == "return" or key == "escape" then
-            SettingsDialog.editingExternalEditor = false
-            return true
-        end
-    end
     return false
 end
 
 function SettingsDialog.textinput(t)
     if not SettingsDialog.visible then return false end
-    if SettingsDialog.editingExternalEditor then
-        SettingsDialog.settings.externalEditor = SettingsDialog.settings.externalEditor .. t
-        return true
-    end
     return false
 end
 

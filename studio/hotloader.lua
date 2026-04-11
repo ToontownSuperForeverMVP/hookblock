@@ -6,7 +6,7 @@ local Serializer = require("engine.serializer")
 
 -- File watching state
 local files = {}
-local watchDirs = {"studio", "engine", "mcp"}
+local watchDirs = {"studio", "engine"}
 local lastCheck = 0
 local checkInterval = 1.0 -- Increase interval for low-end specs
 

@@ -1,6 +1,6 @@
 # Luvöxel Studio
 
-**Luvöxel Studio** (powered by the **HookBlock Engine**) is a high-performance, 3D game development environment and engine built on the **LÖVE (Love2D)** framework. The HookBlock Engine is a modified and extended version of the **g3d** engine, optimized for Roblox-style hierarchical object models and real-time physics. The studio provides a professional-grade suite of development tools, uniquely optimized for integration with AI-driven workflows via the Model Context Protocol (MCP).
+**Luvöxel Studio** (powered by the **HookBlock Engine**) is a high-performance, 3D game development environment and engine built on the **LÖVE (Love2D)** framework. The HookBlock Engine is a modified and extended version of the **g3d** engine, optimized for Roblox-style hierarchical object models and real-time physics. The studio provides a professional-grade suite of development tools.
 
 ## 🚀 Key Offerings
 
@@ -20,12 +20,6 @@ A full-featured development environment to build and manage 3D scenes.
 - **Multi-Tab Script Editor**: A native Lua editor with syntax highlighting, auto-indentation, and multi-tab support for direct code editing within the engine.
 - **Asset Browser**: Centralized management for importing 3D models (`.obj`), textures, and fonts.
 - **Quality of Life**: Built-in Undo/Redo (`Ctrl+Z`/`Ctrl+Y`), Duplication (`Ctrl+D`), and Selection Focusing (`F`).
-
-### 3. MCP Integration (AI-Driven Development)
-The first engine of its kind to natively host a **Model Context Protocol (MCP)** server on `localhost:7111`.
-- **AI-Powered Manipulation**: Connect AI agents (like Gemini or Claude) to explore the game tree, inspect properties, and modify the scene remotely.
-- **Remote Code Execution**: Execute Lua code directly within the engine via the `eval` tool.
-- **Automated Scene Auditing**: Use tools to scan, refactor, or generate complex game hierarchies autonomously.
 
 ## 🛠️ Getting Started
 
@@ -59,7 +53,6 @@ You must have **LÖVE 11.x** installed.
 - `/engine`: Core runtime logic (`Instance`, `Vector3`, `Physics`, `PlayMode`).
 - `/studio`: The development UI, tools, and script editor.
 - `/g3d`: Lightweight 3D rendering library.
-- `/mcp`: Model Context Protocol server and tool implementation.
 - `/assets`: Default assets including models, icons, and textures.
 
 ## 📜 License

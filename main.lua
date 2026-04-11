@@ -29,9 +29,6 @@ local Serializer = require("engine.serializer")
 local Hotloader = require("studio.hotloader")
 love.errorhandler = require("studio.error_catcher")
 
--- Built-in MCP server
-local MCP = require("mcp.server")
-
 -- Studio Main
 local StudioMain = require("studio.main")
 _G.Studio = StudioMain
@@ -170,9 +167,6 @@ function love.load()
                 Hotloader.init()
                 Hotloader.loadState()
             end },
-            { name = "Connecting to MCP Protocol", func = function()
-                MCP.start()
-            end },
             { name = "Finalizing Project", func = function()
                 love.timer.sleep(0.1)
             end }
@@ -217,7 +211,6 @@ function love.update(dt)
 
     StudioMain.update(dt)
     Hotloader.update(dt)
-    MCP.update(dt)
 
     -- Update Lighting at a lower frequency
     lightingTimer = lightingTimer + dt
@@ -232,7 +225,7 @@ function love.update(dt)
     fpsTimer = fpsTimer + dt
     if fpsTimer >= 1.0 then
         local mem = collectgarbage("count")/1024
-        love.window.setTitle(string.format("Luvöxel Studio [v0.0.2-patch] - FPS: %d - MEM: %.1fMB",
+        love.window.setTitle(string.format("Luvöxel Studio [v0.0.1-dev] - FPS: %d - MEM: %.1fMB",
             lt.getFPS(), mem))
         fpsTimer = 0
 
@@ -292,11 +285,6 @@ function love.draw()
     lg.setDepthMode()
     lg.setMeshCullMode("none")
     StudioMain.draw()
-
-    -- MCP hooks
-    if MCP and MCP.draw then
-        MCP.draw()
-    end
 end
 
 function love.mousepressed(x, y, button, istouch, presses)
@@ -478,5 +466,4 @@ end
 
 function love.quit()
     require("studio.ui.script_editor").cleanup()
-    MCP.stop()
 end
