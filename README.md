@@ -1,31 +1,27 @@
-# Luvöxel Studio
+# Luvöxel Studio (MCP Edition)
 
-**Luvöxel Studio** (powered by the **HookBlock Engine**) is a high-performance, 3D game development environment and engine built on the **LÖVE (Love2D)** framework. The HookBlock Engine is a modified and extended version of the **g3d** engine, optimized for Roblox-style hierarchical object models and real-time physics. The studio provides a professional-grade suite of development tools, uniquely optimized for integration with AI-driven workflows via the Model Context Protocol (MCP).
+**Luvöxel Studio** (powered by the **HookBlock Engine**) is a high-performance, 3D game development environment and engine built on the **LÖVE (Love2D)** framework. This branch (`unstable-mcp`) is dedicated to AI-driven development via the **Model Context Protocol (MCP)**.
 
 ## 🚀 Key Offerings
 
 ### 1. The Engine (HookBlock)
 A robust, object-oriented 3D engine with a strict Instance-Property hierarchy.
 - **Hierarchical Object Model**: Familiar `Instance`, `Part`, `Model`, `Workspace`, and `Folder` classes.
-- **Lua Scripting Runtime**: Support for `Script` and `ModuleScript` with a sandboxed environment, including a custom `Task` scheduler and `TweenService`.
-- **Integrated Physics**: A custom AABB-based 3D physics engine with gravity, rigid body dynamics, and collision detection.
-- **Character Support**: Built-in `Humanoid` and `Character` models with movement and health management.
-- **Optimized Rendering**: High-precision 3D pipeline featuring back-face culling, 24-bit depth buffering, and transparency sorting.
+- **Lua Scripting Runtime**: Support for `Script` and `ModuleScript` with a sandboxed environment.
+- **Integrated Physics**: A custom AABB-based 3D physics engine.
 
 ### 2. The Studio (IDE)
 A full-featured development environment to build and manage 3D scenes.
-- **Scene Explorer**: Real-time tree view of the game hierarchy with drag-and-drop support.
-- **Properties Editor**: Dynamic UI for inspecting and modifying instance properties in real-time.
-- **Professional Transformation Tools**: Standard `Move`, `Scale`, and `Rotate` gizmos for precise spatial manipulation.
-- **Multi-Tab Script Editor**: A native Lua editor with syntax highlighting, auto-indentation, and multi-tab support for direct code editing within the engine.
-- **Asset Browser**: Centralized management for importing 3D models (`.obj`), textures, and fonts.
-- **Quality of Life**: Built-in Undo/Redo (`Ctrl+Z`/`Ctrl+Y`), Duplication (`Ctrl+D`), and Selection Focusing (`F`).
+- **Scene Explorer & Properties Editor**: Real-time management of the game hierarchy.
+- **Professional Transformation Tools**: Standard `Move`, `Scale`, and `Rotate` gizmos.
+- **Native Script Editor**: Multi-tab Lua editor with syntax highlighting.
 
 ### 3. MCP Integration (AI-Driven Development)
-The first engine of its kind to natively host a **Model Context Protocol (MCP)** server on `localhost:7111`.
-- **AI-Powered Manipulation**: Connect AI agents (like Gemini or Claude) to explore the game tree, inspect properties, and modify the scene remotely.
-- **Remote Code Execution**: Execute Lua code directly within the engine via the `eval` tool.
-- **Automated Scene Auditing**: Use tools to scan, refactor, or generate complex game hierarchies autonomously.
+The first engine of its kind to natively host a **Model Context Protocol (MCP)** server on `localhost:7111`. This allows AI agents (like Claude, Gemini, or Cursor) to:
+- **Explore**: Inspect the live DataModel hierarchy.
+- **Manipulate**: Move, scale, and rotate objects in real-time.
+- **Code**: Read, write, and execute Lua scripts remotely.
+- **Debug**: Visual debugging via screenshots and real-time logs.
 
 ## 🛠️ Getting Started
 
@@ -34,35 +30,28 @@ You must have **LÖVE 11.x** installed.
 - **Windows/macOS/Linux**: Download from [love2d.org](https://love2d.org/).
 
 ### Running from Source
-1. **Clone the repository**:
+1. **Clone the repository and switch to MCP branch**:
    ```bash
-   git clone -b unstable https://github.com/ToontownSuperForeverMVP/hookblock.git
+   git clone -b unstable-mcp https://github.com/ToontownSuperForeverMVP/hookblock.git
    cd hookblock
    ```
 2. **Launch with LÖVE**:
-   - **Windows**: `path/to/love.exe .`
-   - **macOS**: `open -a love .`
-   - **Linux**: `love .`
+   - `love .`
 
 ## ⌨️ Studio Controls
 | Action | Shortcut |
 | :--- | :--- |
-| **Undo / Redo** | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
-| **Duplicate** | `Ctrl+D` |
-| **Delete** | `Delete` / `Backspace` |
-| **Group selection** | `Ctrl+G` |
-| **Focus Camera** | `F` |
-| **Save Scene** | `Ctrl+S` (saves to `save.json`) |
+| **Undo / Redo** | `Ctrl+Z` / `Ctrl+Y` |
+| **Save Scene** | `Ctrl+S` |
 | **Play / Stop** | `F5` / `F7` |
 
 ## 📁 Architecture
-- `/engine`: Core runtime logic (`Instance`, `Vector3`, `Physics`, `PlayMode`).
-- `/studio`: The development UI, tools, and script editor.
-- `/g3d`: Lightweight 3D rendering library.
+- `/engine`: Core runtime logic.
+- `/studio`: The development UI and tools.
 - `/mcp`: Model Context Protocol server and tool implementation.
-- `/assets`: Default assets including models, icons, and textures.
+- `/g3d`: 3D rendering library.
 
 ## 📜 License
-Licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.
+Licensed under the **GNU General Public License v3.0**.
 
-Keep in mind that this project is moreso a passion project, and will not be taken seriously. You are free to utilize this code or the engine for whatever you please!
+This branch is experimental and optimized for AI-human collaborative workflows.
